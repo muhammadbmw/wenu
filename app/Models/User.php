@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
+use Illuminate\Contracts\Auth\CanResetPassword;
+use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -31,7 +33,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        //'remember_token',
+        'remember_token',
     ];
 
     /**
@@ -45,5 +47,10 @@ class User extends Authenticatable
 	public function profile()
 	{
 		return $this->hasOne(Profile::class);
+	}
+	
+	public function sendPasswordResetNotification($token)
+	{
+		$this->notify(new ResetPasswordNotification($token));
 	}
 }

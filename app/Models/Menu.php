@@ -13,14 +13,15 @@ class Menu extends Model
         'name','description','ingredients','image','price','status','user_id'
     ];
 	
-	 public function getCreatedAtAttribute($value)
+	public function getCreatedAtAttribute($value)
     {
         return date("Y-m-d g:i A",strtotime($value));
     }
 	
-	 public function getUpdatedAtAttribute($value)
+	public function getUpdatedAtAttribute($value)
     {
         return date("Y-m-d g:i A",strtotime($value));
     }
-		
+	
+	
 }
