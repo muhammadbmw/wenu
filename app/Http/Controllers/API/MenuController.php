@@ -17,12 +17,41 @@ class MenuController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
+		$validator = Validator::make($request->all(), [
+            'menu_group_id' => 'required|integer',
+	
+        ]);
+        if ($validator->fails()) {
+            $response = [
+                'success' => false,
+                'data' => $validator->errors(),
+                'message' => 'Validation Error.'
+            ];
+            return response()->json($response, 200);
+        }
+		$menu_group_id = $request->menu_group_id;
         $user_id = Auth::id();
-		$menus = Menu::where('user_id',$user_id)
+		if($menu_group_id == 0)
+		{
+			$menus = Menu::where('user_id',$user_id)
 						->orderBy('id','desc')
 						->get();
+		}
+		else {
+			$menus = DB::table('menus')
+						->join('menu_group_rel','menus.id','=','menu_group_rel.menu_id')
+						->where([
+						['menus.user_id',$user_id],
+						['menu_group_rel.menu_group_id',$menu_group_id],
+						])->orderBy('id','desc')
+						->select('menus.id','menus.name','menus.description','menus.ingredients',
+								'menus.image','menus.price','menus.preparation_time','menus.created_at',
+								'menus.updated_at','menus.status','menus.user_id')
+						->get();
+		}
+		
 		 $response = [
             'success' => true,
             'data' => $menus
@@ -172,6 +201,7 @@ class MenuController extends Controller
      */
     public function destroy(Menu $menu)
     {
+		/*
          try{
             if(isset($menu->image))
 			{
@@ -188,6 +218,33 @@ class MenuController extends Controller
             'success' => true,
             'message' => 'Menu deleted successfully.'
 
+        ];
+        return response()->json($response, 200);
+		*/
+    }
+	//menu that are not in specefic group
+	public function menu_not_in(Request $request)
+    {
+		$validator = Validator::make($request->all(), [
+            'menu_group_id' => 'required|integer',
+	
+        ]);
+        if ($validator->fails()) {
+            $response = [
+                'success' => false,
+                'data' => $validator->errors(),
+                'message' => 'Validation Error.'
+            ];
+            return response()->json($response, 200);
+        }
+		$menu_group_id = $request->menu_group_id;
+        $user_id = Auth::id();
+		$menus =DB::select("SELECT * FROM menus WHERE user_id = ? AND id NOT IN
+		(SELECT menu_id FROM menu_group_rel WHERE menu_group_id= ?)",[$user_id,$menu_group_id]);
+		
+		 $response = [
+            'success' => true,
+            'data' => $menus
         ];
         return response()->json($response, 200);
     }
