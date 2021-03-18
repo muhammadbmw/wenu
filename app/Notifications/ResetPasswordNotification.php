@@ -41,7 +41,7 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
      */
     public function toMail($notifiable)
     {
-		$urlToResetForm = " http://192.168.203.111:3000/chef/reset_password?token=". $this->token."&email=".$notifiable->email;
+		$urlToResetForm = "https://app.wenueat.com/chef/reset_password?token=". $this->token."&email=".$notifiable->email;
 		$count =  config('auth.passwords.users.expire');
         return (new MailMessage)
                     ->subject('Reset Password Notification')

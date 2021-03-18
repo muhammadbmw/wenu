@@ -97,7 +97,7 @@ class MenuGroupAvailabilityController extends Controller
 				$menuGroupAvailability->save();			
 			}
 			
-			$message = 'Availability created successfully';
+			$message = 'Menu category created successfully';
 		}
 		else {
 			//update menu group
@@ -119,7 +119,7 @@ class MenuGroupAvailabilityController extends Controller
 				$menuGroupAvailability->save();			
 			}
 			
-			$message = 'Availability updated successfully';
+			$message = 'Menu category updated successfully';
 		}
 		
 

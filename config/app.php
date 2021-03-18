@@ -52,7 +52,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    'url' => env('APP_URL', 'https://app.wenueat.com/'),
 
     'asset_url' => env('ASSET_URL', null),
 
@@ -174,7 +174,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
-
+		Vimeo\Laravel\VimeoServiceProvider::class,
     ],
 
     /*
@@ -226,7 +226,7 @@ return [
         'URL' => Illuminate\Support\Facades\URL::class,
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
-
+		'Vimeo' => Vimeo\Laravel\Facades\Vimeo::class,
     ],
 
 ];

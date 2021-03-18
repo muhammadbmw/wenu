@@ -70,7 +70,8 @@ class UserController extends Controller
 	$user->name = $request->name;
 	$user->email = $request->email;
 	$user->password = bcrypt($request->password);
-	$user->status = 'pending';
+	//$user->status = 'pending';
+	$user->status = 'active';
 	$user->login_type = 'Registration';
     $user->save();
 	$user_id = $user->id;
@@ -114,37 +115,38 @@ class UserController extends Controller
       }
       if (Auth::attempt(['email' => request('email'), 'password' => request('password')])) {
         $user = Auth::user();
-		if($user->role!='admin' && !$user->hasVerifiedEmail()) {
-			 $response = [
-            'success' => false,
-            'message' => 'unverified'];
-            return response()->json($response, 200);
-		}
-        if($user->status != 'inactive'){
-            $success['token'] = $user->createToken('access_token')->accessToken;
-            $success['user_id'] = $user->id;
-            $success['name'] = $user->name;
-            $success['role'] = $user->role;
-			$success['status'] = $user->status;
+		
+			if($user->role!='admin' && !$user->hasVerifiedEmail()) {
+				$response = [
+				'success' => false,
+				'message' => 'unverified'];
+				return response()->json($response, 200);
+			}
+			if($user->status != 'inactive'){
+				$success['token'] = $user->createToken('access_token')->accessToken;
+				$success['user_id'] = $user->id;
+				$success['name'] = $user->name;
+				$success['role'] = $user->role;
+				$success['status'] = $user->status;
             
-           $response = [
-            'success' => true,
-            'data' => $success,
-            'message' => 'User login successfully.'];
-            return response()->json($response, 200);
-        }
-        else {
-             $response = [
-            'success' => false,
-            'message' => 'User is not active.'];
-            return response()->json($response, 200);
-        }
-    } else {
-             $response = [
-        'success' => false,
-        'message' => 'User does not exist or wrong credentials.'];
-         return response()->json($response, 200);
-    }
+				$response = [
+				'success' => true,
+				'data' => $success,
+				'message' => 'User login successfully.'];
+				return response()->json($response, 200);
+			}
+			else {
+				 $response = [
+				'success' => false,
+				'message' => 'User is not active.'];
+				return response()->json($response, 200);
+			}
+		} else {
+				 $response = [
+			'success' => false,
+			'message' => 'User does not exist or wrong credentials.'];
+			 return response()->json($response, 200);
+		}
 
     }
 	
@@ -277,8 +279,8 @@ class UserController extends Controller
 				else {
 					 //check the email 
 					$user = User::where('email',$email)->first();
-					$type = $user->login_type;
 					if($user){
+						$type = $user->login_type;
 						$response = [
 						'success' => false,
 						'message' => 'You have already used '.$email.' for '.$type.' login.'
@@ -290,7 +292,8 @@ class UserController extends Controller
 						$user->name = $name;
 						$user->email = $email;
 						$user->role = 'foodie';
-						$user->status = 'pending';
+						//$user->status = 'pending';
+						$user->status = 'active';
 						$user->login_type = 'Facebook';
 						$user->save();
 						$user_id = $user->id;
@@ -360,8 +363,8 @@ class UserController extends Controller
 			 else {
 				 //check the email 
 				$user = User::where('email',$email)->first();
-				$type = $user->login_type;
 				if($user){
+					$type = $user->login_type;
 						$response = [
 						'success' => false,
 						'message' => 'You have already used '.$email.' for '.$type.' login.'
@@ -373,7 +376,8 @@ class UserController extends Controller
 					$user->name = $name;
 					$user->email = $email;
 					$user->role = 'foodie';
-					$user->status = 'pending';
+					//$user->status = 'pending';
+					$user->status = 'active';
 					$user->login_type = 'Google';
 					$user->save();
 					$user_id = $user->id;

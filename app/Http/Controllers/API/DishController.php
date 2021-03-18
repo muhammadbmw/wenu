@@ -3,79 +3,29 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\DB;
 use App\Models\Menu;
-use App\Models\MenuMedia;
-use App\Models\MenuTag;
 use Illuminate\Http\Request;
 use Validator;
 use Storage;
 use Auth;
+use Illuminate\Support\Facades\DB;
 
-class MenuController extends Controller
+class DishController extends Controller
 {
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request)
+    public function index()
     {
-		$validator = Validator::make($request->all(), [
-            'day' => 'required|integer',
-	
-        ]);
-        if ($validator->fails()) {
-            $response = [
-                'success' => false,
-                'data' => $validator->errors(),
-                'message' => 'Validation Error.'
-            ];
-            return response()->json($response, 200);
-        }
-		
-		$day = $request->day;
-        $user_id = Auth::id();
-		/*if($day == 7)
-		{
-			$menus = Menu::where([
-						['user_id',$user_id],
-						['status','active']
-						])
+         $user_id = Auth::id();
+		 $dishes = Menu::where('user_id',$user_id)
 						->orderBy('sequence','asc')
 					->get();
-		}*/
-		//else {
-			$menus = DB::table('menus')
-						->join('menu_availability','menus.id','=','menu_availability.menu_id')
-						->where([
-						['menus.user_id',$user_id],
-						['menus.status','active'],
-						['menu_availability.status','active'],
-						['menu_availability.day',$day],
-						])->orderBy('menus.sequence','asc')
-						->select('menus.*','start_time','end_time','cutoff_time')
-						->get();
-			foreach($menus as $menu)
-			{
-				$menu_id = $menu->id;
-				$images = MenuMedia::where([
-							['menu_id',$menu_id],
-							['type','image']
-							])->count();
-				$videos = MenuMedia::where([
-							['menu_id',$menu_id],
-							['type','video']
-							])->count();
-				$menu->images = $images;
-				$menu->videos = $videos;
-			}
-			
-		//}
-		
-		 $response = [
+		$response = [
             'success' => true,
-            'data' => $menus
+            'data' =>  $dishes
         ];
         return response()->json($response, 200);
     }
@@ -88,13 +38,15 @@ class MenuController extends Controller
      */
     public function store(Request $request)
     {
-          $validator = Validator::make($request->all(), [
+         $validator = Validator::make($request->all(), [
             'name' => 'required',
 			'description' => 'required',
 			'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'ingredients' => 'nullable|string',
             'price' => 'required|numeric',
-			'preparation_time' =>'required|integer'
+			'preparation_time' =>'required|integer',
+			'max_portions' =>'required|integer',
+			'customer_prep_time' =>'nullable|integer'
 	
         ]);
         if ($validator->fails()) {
@@ -109,10 +61,15 @@ class MenuController extends Controller
 		$menu->name = $request->name;
 		$menu->description = $request->description;
 		$menu->preparation_time = $request->preparation_time;
+		$menu->max_portions = $request->max_portions;
 		$menu->price = $request->price;
 		$menu->user_id = Auth::id();
+		$menu->sequence = Menu::where('user_id', Auth::id())->count();
 		if ($request->filled('ingredients')) {
 			$menu->ingredients = $request->ingredients;
+		}
+		if ($request->filled('customer_prep_time')) {
+			$menu->customer_prep_time = $request->customer_prep_time;
 		}
 		 if($request->hasFile('image')){
             //get image file.
@@ -127,10 +84,11 @@ class MenuController extends Controller
             $menu->image = $path;
         }
 		$menu->save();
-		
+		$id = $menu->id;
 		 $response = [
             'success' => true,
-            'message' => 'Menu created successfully.'
+			'id' => $id,
+            'message' => 'Dish created successfully.'
         ];
         return response()->json($response, 200);
     }
@@ -143,7 +101,11 @@ class MenuController extends Controller
      */
     public function show(Menu $menu)
     {
-        //
+        $response = [
+            'success' => true,
+            'data' =>  $menu
+        ];
+        return response()->json($response, 200);
     }
 
     /**
@@ -155,14 +117,16 @@ class MenuController extends Controller
      */
     public function update(Request $request, Menu $menu)
     {
-         $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'name' => 'nullable|string',
 			'description' => 'nullable|string',
 			'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'ingredients' => 'nullable|string',
             'price' => 'nullable|numeric',
 			'status' => 'nullable|string',
-			'preparation_time' =>'nullable|integer'
+			'preparation_time' =>'nullable|integer',
+			'max_portions' =>'nullable|integer',
+			'customer_prep_time' =>'nullable|integer'
 	
         ]);
 		
@@ -193,6 +157,12 @@ class MenuController extends Controller
 		if ($request->filled('preparation_time')) {
 			$menu->preparation_time = $request->preparation_time;
 		}
+		if ($request->filled('customer_prep_time')) {
+			$menu->customer_prep_time = $request->customer_prep_time;
+		}
+		if ($request->filled('max_portions')) {
+			$menu->max_portions = $request->max_portions;
+		}
 		 if($request->hasFile('image')){
             //get image file.
            $image = $request->image;   
@@ -215,7 +185,7 @@ class MenuController extends Controller
 		
 		 $response = [
             'success' => true,
-            'message' => 'Menu updated successfully.'
+            'message' => 'Dish updated successfully.'
         ];
         return response()->json($response, 200);
     }
@@ -228,85 +198,6 @@ class MenuController extends Controller
      */
     public function destroy(Menu $menu)
     {
-		/*
-         try{
-            if(isset($menu->image))
-			{
-				$mimage = basename($menu->image);
-				Storage::delete("public/images/{$mimage}");
-			}
-
-			$menu->delete();
-		}
-		catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 200);
-		}
-		 $response = [
-            'success' => true,
-            'message' => 'Menu deleted successfully.'
-
-        ];
-        return response()->json($response, 200);
-		*/
+        //
     }
-	//menu that are not in specefic group
-	public function menu_not_in(Request $request)
-    {
-		$validator = Validator::make($request->all(), [
-            'menu_group_id' => 'required|integer',
-	
-        ]);
-        if ($validator->fails()) {
-            $response = [
-                'success' => false,
-                'data' => $validator->errors(),
-                'message' => 'Validation Error.'
-            ];
-            return response()->json($response, 200);
-        }
-		$menu_group_id = $request->menu_group_id;
-        $user_id = Auth::id();
-		$menus =DB::select("SELECT * FROM menus WHERE user_id = ? AND id NOT IN
-		(SELECT menu_id FROM menu_group_rel WHERE menu_group_id= ?)",[$user_id,$menu_group_id]);
-		
-		 $response = [
-            'success' => true,
-            'data' => $menus
-        ];
-        return response()->json($response, 200);
-    }
-	
-	public function saveSequence(Request $request) 
-	{
-		 $validator = Validator::make($request->all(), [
-			'menuSequence.*.menu_id' => 'required|integer',
-			'menuSequence.*.sequence' => 'required|integer',
-		 ]);
-		 
-		 if ($validator->fails()) {
-            $response = [
-                'success' => false,
-                'data' => $validator->errors(),
-                'message' => 'Validation Error.'
-            ];
-            return response()->json($response, 200);
-        }
-		
-		$menuSequence = $request->input('menuSequence');
-		foreach($menuSequence as $row) {
-			$id = $row['menu_id'];
-			$menu = Menu::find($id);
-			if($menu){
-				$menu->sequence = $row['sequence'];
-				$menu->save();
-			}
-		}
-		$response = [
-            'success' => true,
-            'message' => 'Menu sequence saved successfully'
-
-        ];
-        return response()->json($response, 200);
-		
-	}
 }

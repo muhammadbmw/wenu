@@ -14,7 +14,7 @@ class VerificationController extends Controller
     public function verify($user_id, Request $request) {
         if (!$request->hasValidSignature()) {
             //return response()->json(["message" => "Invalid/Expired url provided.",'success' => false], 200);
-			return redirect()->away('http://192.168.203.111:3000/chef/login');
+			return redirect()->away('https://app.wenueat.com/chef/login');
         }
 
         $user = User::findOrFail($user_id);
@@ -26,9 +26,9 @@ class VerificationController extends Controller
 
         //return response()->json(["message" => "You are already verified", 'success' => true], 200);
 		if($role == 'chef')
-			return redirect()->away('http://192.168.203.111:3000/chef/login');
+			return redirect()->away('https://app.wenueat.com/chef/login');
 		else
-			return redirect()->away('http://192.168.203.111:3000/foodie/login');
+			return redirect()->away('https://app.wenueat.com/foodie/login');
    }
    
    public function resend(Request $request) {
