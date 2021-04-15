@@ -41,10 +41,10 @@ class DishController extends Controller
          $validator = Validator::make($request->all(), [
             'name' => 'required',
 			'description' => 'required',
-			'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+			//'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'ingredients' => 'nullable|string',
             'price' => 'required|numeric',
-			'preparation_time' =>'required|integer',
+			'instructions' =>'nullable|string',
 			'max_portions' =>'required|integer',
 			'customer_prep_time' =>'nullable|integer'
 	
@@ -60,17 +60,21 @@ class DishController extends Controller
 		$menu = new Menu;
 		$menu->name = $request->name;
 		$menu->description = $request->description;
-		$menu->preparation_time = $request->preparation_time;
 		$menu->max_portions = $request->max_portions;
 		$menu->price = $request->price;
+		//$menu->status = $request->status;
 		$menu->user_id = Auth::id();
 		$menu->sequence = Menu::where('user_id', Auth::id())->count();
+		if ($request->filled('instructions')) {
+			$menu->instructions = $request->instructions;
+		}
 		if ($request->filled('ingredients')) {
 			$menu->ingredients = $request->ingredients;
 		}
 		if ($request->filled('customer_prep_time')) {
 			$menu->customer_prep_time = $request->customer_prep_time;
 		}
+		/*
 		 if($request->hasFile('image')){
             //get image file.
            $image = $request->image;   
@@ -82,7 +86,7 @@ class DishController extends Controller
             $image->storeAs('public/images',$filename);
 			$path = asset('public/storage/images/'.$filename);
             $menu->image = $path;
-        }
+        } */
 		$menu->save();
 		$id = $menu->id;
 		 $response = [
@@ -120,11 +124,11 @@ class DishController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string',
 			'description' => 'nullable|string',
-			'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+			//'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'ingredients' => 'nullable|string',
             'price' => 'nullable|numeric',
 			'status' => 'nullable|string',
-			'preparation_time' =>'nullable|integer',
+			'instructions' =>'nullable|string',
 			'max_portions' =>'nullable|integer',
 			'customer_prep_time' =>'nullable|integer'
 	
@@ -154,8 +158,8 @@ class DishController extends Controller
 		if ($request->filled('ingredients')) {
 			$menu->ingredients = $request->ingredients;
 		}
-		if ($request->filled('preparation_time')) {
-			$menu->preparation_time = $request->preparation_time;
+		if ($request->filled('instructions')) {
+			$menu->instructions = $request->instructions;
 		}
 		if ($request->filled('customer_prep_time')) {
 			$menu->customer_prep_time = $request->customer_prep_time;
@@ -163,7 +167,7 @@ class DishController extends Controller
 		if ($request->filled('max_portions')) {
 			$menu->max_portions = $request->max_portions;
 		}
-		 if($request->hasFile('image')){
+		/* if($request->hasFile('image')){
             //get image file.
            $image = $request->image;   
             //get just extension.
@@ -180,7 +184,7 @@ class DishController extends Controller
 				Storage::delete("public/images/{$mimage}");
 			}
             $menu->image = $path;
-        }
+        } */
 		$menu->save();
 		
 		 $response = [
@@ -200,4 +204,52 @@ class DishController extends Controller
     {
         //
     }
+	//update dish defualt image
+	public function update_dish(Request $request)
+    {
+		 $validator = Validator::make($request->all(), [
+            'id' => 'required|integer',
+			//'link' => 'required|string',
+			'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+		
+        if ($validator->fails()) {
+            $response = [
+                'success' => false,
+                'data' => $validator->errors(),
+                'message' => 'Validation Error.'
+            ];
+            return response()->json($response, 200);
+        }
+		$id =  $request->id;
+		//$link =  $request->link;
+		$menu = Menu::where('id',$id)->first();
+		if($menu){
+			$image = $request->image;   
+            $ext = $image->getClientOriginalExtension();           
+            $filename = uniqid().'.'.$ext;          
+            //upload the image
+            $image->storeAs('public/images',$filename);
+			$path = asset('public/storage/images/'.$filename);
+			 //delete the previous image.
+			if(isset($menu->image))
+			{
+				$mimage = basename($menu->image);
+				Storage::delete("public/images/{$mimage}");
+			}
+            $menu->image = $path;
+			$menu->save();
+			$response = [
+            'success' => true,
+            'message' => 'Dish updated successfully.'
+			];
+		} 
+		else {
+			$response = [
+            'success' => false,
+            'message' => 'No Dish'
+			];
+		}
+        return response()->json($response, 200);
+	}
 }

@@ -77,6 +77,7 @@ class MenuAvailabilityController extends Controller
 			'availability.*.start_time' => 'required|string',
 			'availability.*.end_time' => 'required|string',
 			'availability.*.cutoff_time' => 'required|integer',
+			'availability.*.unit' => 'required|string',
 			'availability.*.status' => 'required|string',
 		 ]);
 		 
@@ -103,13 +104,14 @@ class MenuAvailabilityController extends Controller
 				$menuAvailability->end_time = $row['end_time'];
 				$menuAvailability->cutoff_time = $row['cutoff_time'];
 				$menuAvailability->status = $row['status'];
+				$menuAvailability->unit = $row['unit'];
 				$menuAvailability->save();			
 			}
 			
 			$message = 'Availability created successfully';
 		}
 		else {
-			//update menu group availability
+			//update menu availability
 			foreach($availability as $row) {
 				$day = $row['day'];
 				$menuAvailability = MenuAvailability::where([
@@ -119,6 +121,7 @@ class MenuAvailabilityController extends Controller
 				$menuAvailability->start_time = $row['start_time'];
 				$menuAvailability->end_time = $row['end_time'];
 				$menuAvailability->cutoff_time = $row['cutoff_time'];
+				$menuAvailability->unit = $row['unit'];
 				$menuAvailability->status = $row['status'];
 				$menuAvailability->save();			
 			}

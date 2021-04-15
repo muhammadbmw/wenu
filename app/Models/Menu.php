@@ -10,7 +10,7 @@ class Menu extends Model
     use HasFactory;
 	
 	 protected $fillable = [
-        'name','description','ingredients','image','price','status','user_id'
+        'name','description','ingredients','image','price','user_id'
     ];
 	
 	public function getCreatedAtAttribute($value)
@@ -24,6 +24,13 @@ class Menu extends Model
     }
 	
 	public function getIngredientsAttribute($value)
+    {
+        if($value == '')
+			return '';
+		else
+			return ($value);
+    }
+	public function getInstructionsAttribute($value)
     {
         if($value == '')
 			return '';

@@ -30,7 +30,7 @@ class MenuTagController extends Controller
         }
 		$menu_id = $request->menu_id;
 		
-		 $menuTags = DB::table('menu_tags')
+		$menuTags = DB::table('menu_tags')
 							->join('tags', 'menu_tags.tag_id','=','tags.id')
 							->where('menu_id',$menu_id)
 							->select('menu_tags.id','tags.name','tags.category')
@@ -52,7 +52,7 @@ class MenuTagController extends Controller
     {
          $validator = Validator::make($request->all(), [
             'menu_id' =>'required|integer',
-			'tags' => 'required|array',
+			'tags' => 'required|array|max:10',
 
         ]);
         if ($validator->fails()) {
@@ -66,25 +66,36 @@ class MenuTagController extends Controller
 		
 		$menu_id = $request->menu_id;
 		$tags = $request->input('tags');
-		foreach($tags as $tag) {
-			$check = MenuTag::where([
-									['menu_id',$menu_id],
-									['tag_id',$tag]
-								])->first();
-			if($check)
-				continue;
-			else{
-				$menuTag = new MenuTag;	
-				$menuTag->tag_id =  $tag;
-				$menuTag->menu_id =  $menu_id;
-				$menuTag->save();
+		$menu_tag_count = MenuTag::where('menu_id',$menu_id)->count();
+		$tags_count = count($tags);
+		if($menu_tag_count + $tags_count <=10)
+		{
+			foreach($tags as $tag) {
+				$check = MenuTag::where([
+										['menu_id',$menu_id],
+										['tag_id',$tag]
+									])->first();
+				if($check)
+					continue;
+				else{
+					$menuTag = new MenuTag;	
+					$menuTag->tag_id =  $tag;
+					$menuTag->menu_id =  $menu_id;
+					$menuTag->save();
+				}
 			}
+			
+			$response = [
+				'success' => true,
+				'message' => 'Menu Tag created successfully'
+			];
 		}
-		
-		$response = [
-			'success' => true,
-			'message' => 'Menu Tag created successfully'
-		];
+		else {
+				$response = [
+				'success' => false,
+				'message' => 'Maximum limit 10'
+			];
+		}
 		 return response()->json($response, 200);
     }
 

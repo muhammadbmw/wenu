@@ -15,6 +15,8 @@ use App\Http\Controllers\API\TagController;
 use App\Http\Controllers\API\MenuMediaController;
 use App\Http\Controllers\API\KitchenMediaController;
 use App\Http\Controllers\API\MenuTagController;
+use App\Http\Controllers\API\FoodSafetyController;
+use App\Http\Controllers\API\ScheduledDishesController;
 
 
 /*
@@ -49,29 +51,33 @@ Route::middleware(['auth:api','chef'])->group(function () {
 	Route::get('chefProfile', [UserController::class,'chef_profile']);
 	Route::post('updateChefProfile', [UserController::class,'update_chef_profile']);
 	Route::get('switch_to_foodie', [SwitchController::class,'chef_to_foodie']);
+	
+	Route::apiResource('dish', DishController::class);
+	Route::post('dishImage', [DishController::class,'update_dish']);
+	Route::apiResource('tag', TagController::class)->only(['index']);
+	Route::apiResource('menuTag', MenuTagController::class)
+					->only(['index', 'store', 'destroy']);
+	Route::apiResource('kitchenMedia', KitchenMediaController::class)
+					->only(['index', 'store', 'destroy','update']);
+	Route::apiResource('foodSafety', FoodSafetyController::class)
+					->only(['index', 'store', 'destroy','update']);
 });
 
 Route::middleware(['auth:api','activeChef'])->group(function () {
 	Route::apiResource('menu', MenuController::class)
 					->only(['index']);
 	Route::post('saveMenuSequence',[MenuController::class,'saveSequence']);
-	Route::apiResource('dish', DishController::class);
+	
 	Route::apiResource('menuAvailability', MenuAvailabilityController::class)
 			->only(['index', 'store']);
-	//Route::get('menuNotIn', [MenuController::class,'menu_not_in']);
-	//Route::apiResource('menuGroupAvailability', MenuGroupAvailabilityController::class)
-		//	->only(['index', 'store']);
-	//Route::post('menu_group_rel',[MenuGroupRelController::class,'add_or_remove']);
-	Route::apiResource('tag', TagController::class)->only(['index']);
-	Route::apiResource('menuTag', MenuTagController::class)
-					->only(['index', 'store', 'destroy']);
+		
 	Route::apiResource('menuMedia', MenuMediaController::class)
 					->only(['index', 'store', 'destroy']);
-	Route::apiResource('kitchenMedia', KitchenMediaController::class)
-					->only(['index', 'store', 'destroy','update']);
+	
 });
 
 //foodie api
 Route::middleware(['auth:api','foodie'])->group(function () {
 	Route::get('switch_to_chef', [SwitchController::class,'foodie_to_chef']);
+	Route::post('scheduledDishes',ScheduledDishesController::class);
 });

@@ -19,9 +19,9 @@ class TagController extends Controller
     public function index()
     {
         $cuisine = Tag::where('category','Cuisine')->select('id','name')->get();
-		$type = Tag::where('category','Type')->select('id','name')->get();
-		$dietary = Tag::where('category','Dietary')->select('id','name')->get();
-		$data = ['Cuisine' => $cuisine, 'Type' => $type, 'Dietary' => $dietary];
+		$type = Tag::where('category','Category')->select('id','name')->get();
+		$dietary = Tag::where('category','Vegetarian/Organic')->select('id','name')->get();
+		$data = ['Cuisine' => $cuisine, 'Category' => $type, 'Vegetarian/Organic' => $dietary];
 		$response = [
             'success' => true,
             'data' =>  $data

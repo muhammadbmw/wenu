@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Profile;
+use App\Models\FoodSafety;
 use App\Models\SocialLogin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +57,7 @@ class UserController extends Controller
 		'province' => 'required',
 		'unit' => 'nullable',
 		'mobile' => 'required',
+		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
 		'postal_code' => 'required|string|min:6|max:7',
     ]);
     if ($validator->fails()) {
@@ -81,12 +83,47 @@ class UserController extends Controller
 	$profile->province = $request->province;
 	$profile->timezone = $this->get_time_zone($request->province);
 	$profile->postal_code = $request->postal_code;
+	if ($request->filled('latitude')) {
+		$profile->latitude = $request->latitude;
+	}
+	if ($request->filled('longitude')) {
+		$profile->longitude = $request->longitude;
+	}
 	if ($request->filled('unit')) {
 		$profile->unit = $request->unit;
 	}
+	if($request->hasFile('image')){
+            //get image file.
+           $image = $request->image;   
+            //get just extension.
+            $ext = $image->getClientOriginalExtension();           
+            //make a unique name
+            $filename = uniqid().'.'.$ext;          
+            //upload the image
+            $image->storeAs('public/images',$filename);
+			$path = asset('public/storage/images/'.$filename);
+            $profile->image = $path;
+    }
 	$profile->mobile = $request->mobile;
 	$profile->user_id = $user_id;
 	$profile->save();
+	
+	//upload food safety certificate
+	if ($request->filled('expiration_date') && $request->hasFile('file') ) {
+		$foodSafety = new FoodSafety;
+		$foodSafety->user_id = $user_id;
+		$foodSafety->expiration_date = $request->expiration_date;
+		$file = $request->file;   
+		//get just extension.
+		$ext = $file->getClientOriginalExtension();           
+		//make a unique name
+		$filename = uniqid().'.'.$ext;          
+		$file->storeAs('public/images',$filename);
+		$path = asset('public/storage/images/'.$filename);
+		$foodSafety->file = $path;
+		$foodSafety->save();
+	}
+		
 	
 	//send notification 
 	event(new Registered($user));
@@ -128,6 +165,10 @@ class UserController extends Controller
 				$success['name'] = $user->name;
 				$success['role'] = $user->role;
 				$success['status'] = $user->status;
+				$profile = $user->profile;
+				if($profile){
+					$success['image'] = $profile->image;
+				}
             
 				$response = [
 				'success' => true,
@@ -171,7 +212,7 @@ class UserController extends Controller
 		 
 		$data = [ 'name' => $user->name,'email' => $user->email,'city' => $profile->city, 'address' => $profile->address,
 				 'unit' => $profile->unit,'province' => $profile->province, 'postal_code' => $profile->postal_code,
-				 'mobile' => $profile->mobile
+				 'mobile' => $profile->mobile, 'image' => $profile->image
 				];
 		 
 		 $response = [
@@ -195,6 +236,7 @@ class UserController extends Controller
 			$user->password = bcrypt($request->password);
 		}
 		$user->save();
+		
 		if ($request->filled('city')) {
 			$profile->city = $request->city;
 		}
@@ -207,14 +249,38 @@ class UserController extends Controller
 		if ($request->filled('postal_code')) {
 			$profile->postal_code = $request->postal_code;
 		}
+		if ($request->filled('latitude')) {
+			$profile->latitude = $request->latitude;
+		}
+		if ($request->filled('longitude')) {
+			$profile->longitude = $request->longitude;
+		}
 		if ($request->filled('mobile')) {
 			$profile->mobile = $request->mobile;
 		}
+		if($request->hasFile('image')){
+            //get image file.
+           $image = $request->image;   
+            //get just extension.
+            $ext = $image->getClientOriginalExtension();           
+            //make a unique name
+            $filename = uniqid().'.'.$ext;          
+            //upload the image
+            $image->storeAs('public/images',$filename);
+			$path = asset('public/storage/images/'.$filename);
+			 //delete the previous image.
+			if(isset($profile->image))
+			{
+				$mimage = basename($profile->image);
+				Storage::delete("public/images/{$mimage}");
+			}
+            $profile->image = $path;
+        }
 		$profile->save();
 		
 		$data = [ 'name' => $user->name,'city' => $profile->city, 'address' => $profile->address,
 				 'province' => $profile->province, 'postal_code' => $profile->postal_code,
-				 'mobile' => $profile->mobile
+				 'mobile' => $profile->mobile, 'image' => $profile->image
 				];
 		 
 		 $response = [
@@ -425,6 +491,7 @@ class UserController extends Controller
 		'unit' => 'nullable',
 		'province' => 'required',
 		'mobile' => 'required',
+		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
 		'postal_code' => 'required|string|min:6|max:7',
     ]);
     if ($validator->fails()) {
@@ -450,11 +517,29 @@ class UserController extends Controller
 	$profile->province = $request->province;
 	$profile->timezone = $this->get_time_zone($request->province);
 	$profile->postal_code = $request->postal_code;
+	if ($request->filled('latitude')) {
+		$profile->latitude = $request->latitude;
+	}
+	if ($request->filled('longitude')) {
+		$profile->longitude = $request->longitude;
+	}
 	if ($request->filled('unit')) {
 		$profile->unit = $request->unit;
 	}
 	$profile->mobile = $request->mobile;
 	$profile->user_id = $user_id;
+	if($request->hasFile('image')){
+            //get image file.
+           $image = $request->image;   
+            //get just extension.
+            $ext = $image->getClientOriginalExtension();           
+            //make a unique name
+            $filename = uniqid().'.'.$ext;          
+            //upload the image
+            $image->storeAs('public/images',$filename);
+			$path = asset('public/storage/images/'.$filename);
+            $profile->image = $path;
+    }
 	$profile->save();
 	
 	//send notification 
