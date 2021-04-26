@@ -74,6 +74,9 @@ class DishController extends Controller
 		if ($request->filled('customer_prep_time')) {
 			$menu->customer_prep_time = $request->customer_prep_time;
 		}
+		if ($request->filled('options')) {
+			$menu->options = $request->options;
+		}
 		/*
 		 if($request->hasFile('image')){
             //get image file.
@@ -167,6 +170,9 @@ class DishController extends Controller
 		if ($request->filled('max_portions')) {
 			$menu->max_portions = $request->max_portions;
 		}
+		if ($request->filled('options')) {
+			$menu->options = $request->options;
+		}
 		/* if($request->hasFile('image')){
             //get image file.
            $image = $request->image;   
@@ -210,7 +216,7 @@ class DishController extends Controller
 		 $validator = Validator::make($request->all(), [
             'id' => 'required|integer',
 			//'link' => 'required|string',
-			'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+			'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
         ]);
 		
         if ($validator->fails()) {

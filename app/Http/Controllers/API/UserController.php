@@ -57,7 +57,7 @@ class UserController extends Controller
 		'province' => 'required',
 		'unit' => 'nullable',
 		'mobile' => 'required',
-		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
 		'postal_code' => 'required|string|min:6|max:7',
     ]);
     if ($validator->fails()) {
@@ -491,7 +491,7 @@ class UserController extends Controller
 		'unit' => 'nullable',
 		'province' => 'required',
 		'mobile' => 'required',
-		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
 		'postal_code' => 'required|string|min:6|max:7',
     ]);
     if ($validator->fails()) {

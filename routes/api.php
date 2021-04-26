@@ -17,7 +17,10 @@ use App\Http\Controllers\API\KitchenMediaController;
 use App\Http\Controllers\API\MenuTagController;
 use App\Http\Controllers\API\FoodSafetyController;
 use App\Http\Controllers\API\ScheduledDishesController;
-
+use App\Http\Controllers\API\CookNearController;
+use App\Http\Controllers\API\DishDetailsController;
+use App\Http\Controllers\API\ChefKitchenController;
+use App\Http\Controllers\API\ChefScheduledDishesController;
 
 /*
 |--------------------------------------------------------------------------
@@ -80,4 +83,8 @@ Route::middleware(['auth:api','activeChef'])->group(function () {
 Route::middleware(['auth:api','foodie'])->group(function () {
 	Route::get('switch_to_chef', [SwitchController::class,'foodie_to_chef']);
 	Route::post('scheduledDishes',ScheduledDishesController::class);
+	Route::post('cooksNear',CookNearController::class);
+	Route::get('dishDetails',DishDetailsController::class);
+	Route::get('chefKitchen',ChefKitchenController::class);
+	Route::post('chefScheduledDishes',ChefScheduledDishesController::class);
 });

@@ -8,9 +8,8 @@ use App\Models\User;
 use App\Models\Profile;
 use Validator;
 use Illuminate\Support\Facades\DB;
-use App\Models\MenuMedia;
 
-class ScheduledDishesController extends Controller
+class CookNearController extends Controller
 {
     /**
      * Handle the incoming request.
@@ -21,7 +20,6 @@ class ScheduledDishesController extends Controller
     public function __invoke(Request $request)
     {
         $validator = Validator::make($request->all(), [
-        'day' => 'required|integer',
 		'latitude' => 'required|string',
         'longitude' => 'required|string'
       
@@ -37,7 +35,7 @@ class ScheduledDishesController extends Controller
 		
 		$latitudeFrom = $request->latitude;
 		$longitudeFrom = $request->longitude;
-		$day = $request->day;
+		
 		//get all the chefs latitude and longitude
 		$chefs = DB::table('users')
 							->join('profiles','users.id','=','profiles.user_id')
@@ -64,52 +62,37 @@ class ScheduledDishesController extends Controller
 		}
 		$data = [];
 		foreach($chefs_in_range as $chef){
+			$chef_data = [];
 			$user_id = $chef->id;
 			$chef_name = $chef->name;
 			$chef_image = $chef->image;
 			$distance = $chef->distance;
+			
+			$chef_data['chef_id'] = $user_id;
+			$chef_data['chef_name'] = $chef_name;
+			$chef_data['chef_image'] = $chef_image;
+			$chef_data['distance'] = $distance;
+			
 			$menus = DB::table('menus')
-						->join('menu_availability','menus.id','=','menu_availability.menu_id')
-						->where([
-						['menus.user_id',$user_id],
-						['menus.status','active'],
-						['menu_availability.status','active'],
-						['menu_availability.day',$day],
-						])->orderBy('menus.sequence','asc')
-						->select('menus.id as menu_id','menus.name as menu_name','menus.image as menu_image','price','start_time','end_time','cutoff_time','unit')
-						->get();
-			foreach($menus as $menu)
-			{
-				$menu->chef_id = $user_id;
-				$menu->chef_name = $chef_name;
-				$menu->chef_image = $chef_image;
-				$menu->distance = $distance;
-				$menu_id = $menu->menu_id;
-				//menu media
-				$links = MenuMedia::where([
-					['menu_id',$menu_id],
-					['type','image']
-					])->pluck('link')->toArray();
-				if(!is_null($menu->menu_image))
-					array_unshift($links, $menu->menu_image);
-				$menu->menu_image = $links;
-				
-				array_push($data,$menu);
-			}
-			// if($menus->isNotEmpty())
-				// array_push($data,$menus);
+							->where([
+							['menus.user_id',$user_id],
+							['menus.status','active'],
+							])->orderBy('menus.sequence','asc')
+							->select('menus.id as menu_id','menus.name as menu_name','menus.image as menu_image','price')
+							->limit(10)
+							->get();
+			$chef_data['menus'] = $menus;
+			
+			array_push($data,$chef_data);
+			
 		 }
-		
-		
-		 $response = [
+		$response = [
             'success' => true,
             'data' => $data
 			
         ];
         return response()->json($response, 200);
-	
     }
-	
 	private  function twopoints_on_earth($latitudeFrom, $longitudeFrom,
                                     $latitudeTo,  $longitudeTo)
     {
