@@ -54,7 +54,7 @@ class MenuController extends Controller
 						['menu_availability.status','active'],
 						['menu_availability.day',$day],
 						])->orderBy('menus.sequence','asc')
-						->select('menus.*','start_time','end_time','cutoff_time')
+						->select('menus.*','start_time','end_time','cutoff_time','unit')
 						->get();
 			foreach($menus as $menu)
 			{

@@ -36,13 +36,14 @@ class ChefKitchenController extends Controller
 		$chefs = DB::table('users')
 				->join('profiles','users.id','=','profiles.user_id')
 				->where('users.id',$chef_id)
-				->select('users.name','profiles.image')
+				->select('users.id','users.name','profiles.image')
 				->first();
 		//get chef kitchen medias
 		$kitchenMedias = KitchenMedia::where('user_id',$chef_id)
 						->select('link','type','description')
 						->get();
 		$data = [];
+		$data['chef_id'] = $chefs->id;
 		$data['chef_name'] = $chefs->name;
 		$data['chef_image'] = $chefs->image;
 		$data['kitchen'] = $kitchenMedias;

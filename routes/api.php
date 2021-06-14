@@ -21,6 +21,17 @@ use App\Http\Controllers\API\CookNearController;
 use App\Http\Controllers\API\DishDetailsController;
 use App\Http\Controllers\API\ChefKitchenController;
 use App\Http\Controllers\API\ChefScheduledDishesController;
+use App\Http\Controllers\API\CartController;
+use App\Http\Controllers\API\AddToCartController;
+use App\Http\Controllers\API\OnboardingController;
+use App\Http\Controllers\API\OnboardingReturnController;
+use App\Http\Controllers\API\OnboardingRefreshController;
+use App\Http\Controllers\API\CheckOnboardingController;
+use App\Http\Controllers\API\AccountUpdateController;
+use App\Http\Controllers\API\CheckoutSessionController;
+use App\Http\Controllers\API\CheckoutSessionCompletedController;
+use App\Http\Controllers\API\OrderController;
+use App\Http\Controllers\API\OrderDetailsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,7 +54,10 @@ Route::get('email/verify/{id}', [VerificationController::class,'verify'])
 ->name('verification.verify');
 Route::post('email/resend', [VerificationController::class,'resend'])
 ->name('verification.resend');
-
+Route::get('onboarding_return',OnboardingReturnController::class);
+Route::get('onboarding_refresh',OnboardingRefreshController::class);
+Route::post('account_updated',AccountUpdateController::class);
+Route::post('checkout_session_completed',CheckoutSessionCompletedController::class);
 
 Route::middleware('auth:api')->group(function () {
     Route::post('logout', [UserController::class,'logout']);
@@ -63,7 +77,9 @@ Route::middleware(['auth:api','chef'])->group(function () {
 	Route::apiResource('kitchenMedia', KitchenMediaController::class)
 					->only(['index', 'store', 'destroy','update']);
 	Route::apiResource('foodSafety', FoodSafetyController::class)
-					->only(['index', 'store', 'destroy','update']);
+					->only(['index', 'store']);
+	Route::get('onboarding',OnboardingController::class);
+	Route::get('check_onboarding',CheckOnboardingController::class);
 });
 
 Route::middleware(['auth:api','activeChef'])->group(function () {
@@ -87,4 +103,11 @@ Route::middleware(['auth:api','foodie'])->group(function () {
 	Route::get('dishDetails',DishDetailsController::class);
 	Route::get('chefKitchen',ChefKitchenController::class);
 	Route::post('chefScheduledDishes',ChefScheduledDishesController::class);
+	Route::get('addToCart',AddToCartController::class);
+	Route::apiResource('cart', CartController::class)
+					->only(['index', 'store', 'destroy','update']);
+	Route::post('checkout_session',CheckoutSessionController::class);
+	Route::apiResource('order',OrderController::class)
+						->only(['index']);
+	Route::get('orderDetails',OrderDetailsController::class);
 });

@@ -44,7 +44,7 @@ class ChefScheduledDishesController extends Controller
 				])->orderBy('menus.sequence','asc')
 				->select('menus.id as menu_id','menus.name as menu_name','menus.image as menu_image','price','start_time','end_time','cutoff_time','unit')
 				->get();
-		$data = [];		
+		/*$data = [];		
 		foreach($menus as $menu){
 			$menu_id = $menu->menu_id;
 			//menu media
@@ -58,10 +58,10 @@ class ChefScheduledDishesController extends Controller
 			
 			array_push($data,$menu);
 		}
-				
+		*/		
 		 $response = [
             'success' => true,
-            'data' => $data
+            'data' => $menus
 			
         ];
         return response()->json($response, 200);

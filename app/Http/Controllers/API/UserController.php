@@ -7,10 +7,13 @@ use App\Models\User;
 use App\Models\Profile;
 use App\Models\FoodSafety;
 use App\Models\SocialLogin;
+use App\Models\StripeAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Registered;
 use Validator;
+use Stripe;
+use Storage;
 use Illuminate\Support\Facades\Http;
 
 class UserController extends Controller
@@ -50,6 +53,8 @@ class UserController extends Controller
   {
     $validator = Validator::make($request->all(), [
         'name' => 'required',
+		'first_name' => 'nullable',
+		'last_name' => 'nullable',
         'email' => 'required|email:rfc,dns|unique:users',
         'password' => 'required|string',
 		'city' => 'required',
@@ -70,6 +75,12 @@ class UserController extends Controller
     }
 	$user = new User;
 	$user->name = $request->name;
+	if ($request->filled('first_name')) {
+		$user->first_name = $request->first_name;
+	}
+	if ($request->filled('last_name')) {
+		$user->last_name = $request->last_name;
+	}
 	$user->email = $request->email;
 	$user->password = bcrypt($request->password);
 	//$user->status = 'pending';
@@ -123,7 +134,28 @@ class UserController extends Controller
 		$foodSafety->file = $path;
 		$foodSafety->save();
 	}
-		
+	
+	//create stripe account 
+	Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
+	$account = Stripe\Account::create([
+	  'country' => 'CA',
+	  'type' => 'express',
+	   'capabilities' => [
+		'card_payments' => [
+		  'requested' => true,
+		],
+		'transfers' => [
+		  'requested' => true,
+		],
+	  ],
+	]);
+
+	$account_id = $account->id;
+	$stripeAccount = new StripeAccount;
+	$stripeAccount->account_id = $account_id;
+	$stripeAccount->details_submitted = 0;
+	$stripeAccount->user_id = $user_id;;
+	$stripeAccount->save();
 	
 	//send notification 
 	event(new Registered($user));
@@ -185,7 +217,7 @@ class UserController extends Controller
 		} else {
 				 $response = [
 			'success' => false,
-			'message' => 'User does not exist or wrong credentials.'];
+			'message' => 'User does not exist or wrong credentials! If you are a new user, please click Sign-up.'];
 			 return response()->json($response, 200);
 		}
 
@@ -207,12 +239,37 @@ class UserController extends Controller
 	//get chef profile
 	public function chef_profile()
 	{
-		 $user = Auth::user();
-		 $profile = $user->profile;
+		$user = Auth::user();
+		$profile = $user->profile;
+		$foodSafety = FoodSafety::where('user_id',$user->id)
+					->first();
+		if($foodSafety){
+			$food_certificate_file = $foodSafety->file;
+			$food_certificate_expiration_date = $foodSafety->expiration_date;
+			$food_certificate_status = $foodSafety->status;
+		}
+		else {
+			$food_certificate_file = "";
+			$food_certificate_expiration_date = "";
+			$food_certificate_status = "";
+		}
+		$stripeAccount = StripeAccount::where('user_id',$user->id)->first();
+		if($stripeAccount) {
+			$details = $stripeAccount->details_submitted;
+			if($details)
+				$onboard = true;
+			else 
+				$onboard = false;
+		}
+		else {
+			$onboard = false;
+		}
 		 
-		$data = [ 'name' => $user->name,'email' => $user->email,'city' => $profile->city, 'address' => $profile->address,
+		$data = [ 'name' => $user->name,'first_name' => $user->first_name,'last_name' => $user->last_name,'email' => $user->email,'city' => $profile->city, 'address' => $profile->address,
 				 'unit' => $profile->unit,'province' => $profile->province, 'postal_code' => $profile->postal_code,
-				 'mobile' => $profile->mobile, 'image' => $profile->image
+				 'mobile' => $profile->mobile, 'image' => $profile->image,
+				 'latitude' => $profile->latitude, 'longitude' => $profile->longitude,
+				 'food_certificate_file' => $food_certificate_file, 'food_certificate_expiration_date' => $food_certificate_expiration_date,'food_certificate_status' => $food_certificate_status,'onboard' => $onboard
 				];
 		 
 		 $response = [
@@ -231,6 +288,12 @@ class UserController extends Controller
 		
 		if ($request->filled('name')) {
 			$user->name = $request->name;
+		}
+		if ($request->filled('first_name')) {
+			$user->first_name = $request->first_name;
+		}
+		if ($request->filled('last_name')) {
+			$user->last_name = $request->last_name;
 		}
 		if ($request->filled('password')) {
 			$user->password = bcrypt($request->password);
@@ -278,7 +341,7 @@ class UserController extends Controller
         }
 		$profile->save();
 		
-		$data = [ 'name' => $user->name,'city' => $profile->city, 'address' => $profile->address,
+		$data = [ 'name' => $user->name,'first_name' => $user->first_name,'last_name' => $user->last_name,'city' => $profile->city, 'address' => $profile->address,
 				 'province' => $profile->province, 'postal_code' => $profile->postal_code,
 				 'mobile' => $profile->mobile, 'image' => $profile->image
 				];

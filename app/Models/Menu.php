@@ -37,4 +37,11 @@ class Menu extends Model
 		else
 			return ($value);
     }
+	public function getImageAttribute($value)
+    {
+        if($value == '')
+			return '';
+		else
+			return ($value);
+    }
 }
