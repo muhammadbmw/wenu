@@ -71,9 +71,21 @@ class CheckoutSessionCompletedController extends Controller
 				//create payment
 				$payment = new Payment;
 				$payment->subtotal = sprintf('%0.2f',($session->amount_subtotal/100));
-				$payment->total = sprintf('%0.2f',($session->amount_total/100));
+				$total = sprintf('%0.2f',($session->amount_total/100));
+				$payment->total = $total;
 				$payment->tax = sprintf('%0.2f',($session->total_details->amount_tax/100));
+				$application_fee = $session->metadata->afm;
+				$payment->application_fee = $application_fee;
 				$payment->payment_intent = $session->payment_intent;
+				$intent = Stripe\PaymentIntent::retrieve($session->payment_intent);
+				$transfer_amount = sprintf('%0.2f',($intent->transfer_data->amount/100));
+				$payment->transfer_amount = $transfer_amount;
+				$service_fee = $session->metadata->sf;
+				$payment->service_fee = $service_fee;
+				$subtotal = $transfer_amount + $application_fee + $service_fee;
+				$service_fee_tax =  sprintf('%0.2f',($total - $subtotal));
+				$payment->service_fee_tax = $service_fee_tax;
+				
 				$payment->user_id = $foodie_id;
 				$payment->save();
 				$payment_id = $payment->id;

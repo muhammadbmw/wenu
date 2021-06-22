@@ -15,9 +15,12 @@ class CreatePaymentsTable extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-			$table->string('subtotal',10);
-			$table->string('total',10);
-			$table->string('tax',10);
+			$table->decimal('total',$precision = 6,$scale = 2);
+			$table->decimal('subtotal',$precision = 6,$scale = 2);
+			$table->decimal('tax',$precision = 6,$scale = 2);
+			$table->decimal('service_fee',$precision = 6,$scale = 2);
+			$table->decimal('application_fee',$precision = 6,$scale = 2);
+			$table->decimal('transfer_amount',$precision = 6,$scale = 2);
 			$table->string('payment_intent',100);
             $table->timestamps();
 			$table->engine = 'InnoDB';

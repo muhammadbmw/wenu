@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreatePickupsTable extends Migration
+class CreateRefundsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,13 +13,14 @@ class CreatePickupsTable extends Migration
      */
     public function up()
     {
-        Schema::create('pickups', function (Blueprint $table) {
+        Schema::create('refunds', function (Blueprint $table) {
             $table->id();
-			$table->date('date');
-			$table->time('time', $precision = 0);
+			$table->decimal('amount',$precision = 6,$scale = 2);
+			$table->string('refund_id',100);
             $table->timestamps();
+			$table->foreignId('order_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
 			$table->engine = 'InnoDB';
-			$table->foreignId('cart_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+			$table->foreignId('user_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
         });
     }
 
@@ -30,6 +31,6 @@ class CreatePickupsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('pickups');
+        Schema::dropIfExists('refunds');
     }
 }

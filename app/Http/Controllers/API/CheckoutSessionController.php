@@ -8,6 +8,8 @@ use Stripe;
 use App\Models\StripeAccount;
 use App\Models\CheckoutSession;
 use App\Models\User;
+use App\Models\Profile;
+use App\Models\PlatformFee;
 use Validator;
 use Auth;
 use DB;
@@ -34,24 +36,36 @@ class CheckoutSessionController extends Controller
             ];
             return response()->json($response, 200);
         }
+	
 		$foodie_id = Auth::id();
+		
 		$foodie_email = Auth::user()->email;
+		//platform fees
+		$platformFee = PlatformFee::where('id',1)->first();
+		$service_fee = $platformFee->service_fee;
+		$afp =  $platformFee->application_fee_percent;
 		
 		$chef_id = $request->chef_id;
 		$cart_ids = $request->input('cart_ids');
 		$chef_email = User::where('id',$chef_id)->value('email');
+		$chef_province = Profile::where('user_id',$chef_id)->value('province');
+		//get tax rate
+		$tax_rate = $this->get_tax_rate($chef_province);
+		//get tax percent
+		$tax_percent = $this->get_tax_percent($chef_province);
+		
 		$account_id = StripeAccount::where('user_id',$chef_id)->value('account_id');
 		$product = [];
 		$subtotal = 0;
-		foreach($cart_ids as $cart_id){
-			$item = [];
-			$item = DB::table('carts')
+		$items = DB::table('carts')
 						->join('menus','carts.menu_id','=','menus.id')
-						->where('carts.id',$cart_id)
-						->select('quantity','name','price','image')
-						->first();
-			
+						->whereIn('carts.id',$cart_ids)
+						->select('quantity','name','menus.price','image')
+						->get();			
+		foreach($items as $item){
 			$subtotal += $item->price * $item->quantity;
+			if(is_null($item->image))
+				$item->image ='https://api.wenueat.com/public/storage/images/default.png';
 			array_push($product, [
 				'price_data' => [
 				  'currency' => 'cad',
@@ -62,12 +76,26 @@ class CheckoutSessionController extends Controller
 				  ],
 				],
 				'quantity' => $item->quantity,
-				 'tax_rates' => ['txr_1IxCIYHvEncyRFYapDGwFvoM']
+				 'tax_rates' => [$tax_rate]
 			]);
 		}
-		$subtotal += $subtotal * 0.13;
-		 
-		$application_fee_amount = sprintf('%0.2f',$subtotal * 0.10);
+		//add service fee
+		array_push($product, [
+				'price_data' => [
+				  'currency' => 'cad',
+				  'unit_amount' => $service_fee * 100,
+				  'product_data' => [
+					'name' => 'Service fee',
+				  ],
+				],
+				'quantity' => 1,
+				 'tax_rates' => [$tax_rate]
+			]);
+			
+		$subtotal += sprintf('%0.2f',($subtotal * $tax_percent));
+
+		$application_fee_amount = sprintf('%0.2f',$subtotal * $afp);
+		$transfer_amount = sprintf('%0.2f',($subtotal - $application_fee_amount));
 		
 		$cart = implode(',',$cart_ids);
 		
@@ -79,11 +107,11 @@ class CheckoutSessionController extends Controller
 		$checkout_session = Stripe\Checkout\Session::create([
 		  'payment_method_types' => ['card'],
 		  'line_items' => [$product],
-		  'metadata' => ['cart_id' => $cart,'chef_id' => $chef_id],
+		  'metadata' => ['cart_id' => $cart,'chef_id' => $chef_id,'afm' => $application_fee_amount,'sf' => $service_fee],
 		  'payment_intent_data' => [
-			'application_fee_amount' => $application_fee_amount * 100,
 			'receipt_email' => $chef_email,
 			'transfer_data' => [
+				'amount' => $transfer_amount * 100,
 			  'destination' => $account_id,
 			],
 		  ],
@@ -106,4 +134,106 @@ class CheckoutSessionController extends Controller
 				];
 		return response()->json($response, 200);
     }
+	//get tax rate based on province
+	private function get_tax_rate($province)
+	{
+		$tax_rate = null;
+		$region = strtoupper($province);
+		$tax5 = 'txr_1J2HzDHvEncyRFYaK9Jn3pSC';
+		$tax13 = 'txr_1IxCIYHvEncyRFYapDGwFvoM';
+		$tax15 = 'txr_1J2I1lHvEncyRFYaTADaTYaR';
+		switch ($region) {
+                case "AB":
+                    $tax_rate = $tax5;
+                    break;
+                case "BC":
+                    $tax_rate = $tax5;
+                    break;
+                case "MB":
+                    $tax_rate = $tax5;
+                    break;
+                case "NB":
+                    $tax_rate = $tax15;
+                    break;
+                case "NL":
+                   $tax_rate = $tax15;
+                    break;
+                case "NS":
+                    $tax_rate = $tax15;
+                    break;
+                case "NT":
+                    $tax_rate = $tax5;
+                    break;
+                case "NU":
+                    $tax_rate = $tax5;
+                    break;
+                case "ON":
+                    $tax_rate = $tax13;
+                    break;
+                case "PE":
+                    $tax_rate = $tax15;
+                    break;
+                case "QC":
+                   $tax_rate = $tax5;
+                    break;
+                case "SK":
+                    $tax_rate = $tax5;
+                    break;
+                case "YT":
+                    $tax_rate = $tax5;
+                    break;
+			}
+			return $tax_rate;
+	}
+	//get tax percent based on province
+	private function get_tax_percent($province)
+	{
+		$tax_percent = 0;
+		$region = strtoupper($province);
+		$tax5 = 0.05;
+		$tax13 = 0.13;
+		$tax15 = 0.15;
+		switch ($region) {
+                case "AB":
+                    $tax_percent = $tax5;
+                    break;
+                case "BC":
+                    $tax_percent = $tax5;
+                    break;
+                case "MB":
+                    $tax_percent = $tax5;
+                    break;
+                case "NB":
+                    $tax_percent = $tax15;
+                    break;
+                case "NL":
+                   $tax_percent = $tax15;
+                    break;
+                case "NS":
+                    $tax_percent = $tax15;
+                    break;
+                case "NT":
+                    $tax_percent = $tax5;
+                    break;
+                case "NU":
+                    $tax_percent = $tax5;
+                    break;
+                case "ON":
+                    $tax_percent = $tax13;
+                    break;
+                case "PE":
+                    $tax_percent = $tax15;
+                    break;
+                case "QC":
+                   $tax_percent = $tax5;
+                    break;
+                case "SK":
+                    $tax_percent = $tax5;
+                    break;
+                case "YT":
+                    $tax_percent = $tax5;
+                    break;
+			}
+			return $tax_percent;
+	}
 }

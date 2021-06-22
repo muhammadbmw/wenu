@@ -18,11 +18,18 @@ class CreateCartsTable extends Migration
 			$table->integer('quantity');
 			$table->string('cook_notes')->nullable();
 			$table->string('status',10)->default('active');
+			$table->decimal('price',$precision = 6,$scale = 2);
 			$table->enum('pickupOrDelivery',['pickup','delivery']);
+			$table->string('date',12);
+			$table->string('available',100);
+			$table->string('address')->nullable();
+			$table->string('driver_notes')->nullable();
             $table->timestamps();
 			$table->engine = 'InnoDB';
 			$table->foreignId('menu_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
 			$table->foreignId('user_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+			$table->unsignedBigInteger('chef_id');
+			$table->foreign('chef_id')->references('id')->on('users') ->onUpdate('cascade')->onDelete('cascade');
         });
     }
 

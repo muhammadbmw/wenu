@@ -15,6 +15,7 @@ class CreateOrdersTable extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+			$table->string('status',20)->default('active');
             $table->timestamps();
 			$table->engine = 'InnoDB';
 			$table->foreignId('payment_id')->constrained()->onUpdate('cascade')->onDelete('cascade');

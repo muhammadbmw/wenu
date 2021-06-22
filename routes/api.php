@@ -32,6 +32,11 @@ use App\Http\Controllers\API\CheckoutSessionController;
 use App\Http\Controllers\API\CheckoutSessionCompletedController;
 use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\OrderDetailsController;
+use App\Http\Controllers\API\UpcomingPickupDeliveryController;
+use App\Http\Controllers\API\ChefOrderController;
+use App\Http\Controllers\API\StripeDashboardController;
+use App\Http\Controllers\API\ChefCancelOrderController;
+use App\Http\Controllers\API\ChefUpcomingOrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +66,8 @@ Route::post('checkout_session_completed',CheckoutSessionCompletedController::cla
 
 Route::middleware('auth:api')->group(function () {
     Route::post('logout', [UserController::class,'logout']);
+	Route::apiResource('order',OrderController::class)
+						->only(['update']);
 });
 
 //chef api
@@ -92,7 +99,10 @@ Route::middleware(['auth:api','activeChef'])->group(function () {
 		
 	Route::apiResource('menuMedia', MenuMediaController::class)
 					->only(['index', 'store', 'destroy']);
-	
+	Route::get('chef_order',ChefOrderController::class);
+	Route::get('chef_cancel_order',ChefCancelOrderController::class);
+	Route::get('stripe_dashboard',StripeDashboardController::class);
+	Route::get('chef_upcoming_order',ChefUpcomingOrderController::class);
 });
 
 //foodie api
@@ -109,5 +119,7 @@ Route::middleware(['auth:api','foodie'])->group(function () {
 	Route::post('checkout_session',CheckoutSessionController::class);
 	Route::apiResource('order',OrderController::class)
 						->only(['index']);
+	Route::get('cancel_order',[OrderController::class,'cancel_order']);
 	Route::get('orderDetails',OrderDetailsController::class);
+	Route::get('upcoming_pickup_delivery',UpcomingPickupDeliveryController::class);
 });

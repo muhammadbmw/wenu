@@ -5,10 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MenuGroup extends Model
+class PlatformFee extends Model
 {
     use HasFactory;
-	protected $table = 'menu_groups';
-	protected $primaryKey = 'id';
-	public $timestamps = false;
+	protected $table = 'platform_fees';
 }

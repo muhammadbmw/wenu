@@ -4,8 +4,6 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
-use App\Models\Pickup;
-use App\Models\Deliver;
 use Illuminate\Http\Request;
 use App\Models\Menu;
 use App\Models\MenuAvailability;
@@ -44,6 +42,7 @@ class CartController extends Controller
 				   ->select('users.id as chef_id','users.name as chef_name')
 				   ->groupBy('users.id','users.name')
 				   ->get();
+		
 		foreach($chefs as $chef){
 			$chef_id = $chef->chef_id;
 			
@@ -54,28 +53,23 @@ class CartController extends Controller
 								['carts.status','active'],
 								['menus.user_id',$chef_id]
 								])->orderBy('carts.id','asc')
-						->select('carts.id','carts.cook_notes','carts.quantity','carts.pickupOrDelivery as option','menus.name','menus.price','carts.menu_id','menus.image')
+						->select('carts.id','carts.cook_notes','carts.quantity','carts.price','carts.pickupOrDelivery as option','carts.date','carts.available','carts.driver_notes','carts.address','menus.name','carts.menu_id','menus.image')
 						->get();
 			
 			foreach($carts as $cart){
 				$option = $cart->option;
 				$cart_id = $cart->id;
 				$quantity = $cart->quantity;
-				//$chef_id = $cart->chef_id;
-				$menu_id = $cart->menu_id;
-				
+				$menu_id = $cart->menu_id;			
 				if(is_null($cart->image))
 					$cart->image = '';
-				//$cart->chef_name = User::where('id',$chef_id)->value('name');
-				if($quantity > 1)
-					$cart->price =  sprintf('%0.2f',$cart->price * $quantity);
+				//if($quantity > 1)
+					//$cart->price =  sprintf('%0.2f',$cart->price * $quantity);
 				if(is_null($cart->cook_notes))
 					$cart->cook_notes = '';
 				if($option == 'pickup') {
-					$pickup = Pickup::where('cart_id',$cart_id)->first();
-					$cart->date = $pickup->date;
-					$cart->available = $pickup->available;
-					$pickup_time = strtotime($pickup->date);
+					
+					$pickup_time = strtotime($cart->date);
 					$day = $this->getDay(date("l",$pickup_time));
 					
 					//menu availability
@@ -84,7 +78,7 @@ class CartController extends Controller
 									['day',$day]
 									])->first();
 					$start_time = $menuAvailability->start_time;
-					$pickup_start_time = date("Y-m-d H:i",strtotime($pickup->date." ".$start_time));
+					$pickup_start_time = date("Y-m-d H:i",strtotime($cart->date." ".$start_time));
 					$cutoff_time = $menuAvailability->cutoff_time.' '.$menuAvailability->unit;
 					$cutoff_end_time = strtotime(date("Y-m-d H:i", strtotime('-'.$cutoff_time, strtotime($pickup_start_time))));
 					
@@ -100,10 +94,10 @@ class CartController extends Controller
 					$cart->address = '';				
 				}
 				if($option == 'delivery') {
-					$deliver = Deliver::where('cart_id',$cart_id)->first();
-					$cart->date = $deliver->date;
-					$cart->available = $deliver->available;
-					$deliver_time = strtotime($deliver->date);
+					//$deliver = Deliver::where('cart_id',$cart_id)->first();
+					//$cart->date = $deliver->date;
+					//$cart->available = $deliver->available;
+					$deliver_time = strtotime($cart->date);
 					$day = $this->getDay(date("l",$deliver_time));
 					
 					//menu availability
@@ -112,7 +106,7 @@ class CartController extends Controller
 									['day',$day]
 									])->first();
 					$start_time = $menuAvailability->start_time;
-					$deliver_start_time = date("Y-m-d H:i",strtotime($deliver->date." ".$start_time));
+					$deliver_start_time = date("Y-m-d H:i",strtotime($cart->date." ".$start_time));
 					$cutoff_time = $menuAvailability->cutoff_time.' '.$menuAvailability->unit;
 					$cutoff_end_time = strtotime(date("Y-m-d H:i", strtotime('-'.$cutoff_time, strtotime($deliver_start_time))));
 					
@@ -125,11 +119,9 @@ class CartController extends Controller
 						$cart->flag = true;
 						$cart->message = '';
 					}
-					$cart->address = $deliver->address;
-					if(is_null($deliver->driver_notes))
+					//$cart->address = $deliver->address;
+					if(is_null($cart->driver_notes))
 						$cart->driver_notes = '';
-					else
-						$cart->driver_notes = $deliver->driver_notes;
 				}
 				
 			}
@@ -173,27 +165,21 @@ class CartController extends Controller
 		$cart->menu_id = $request->menu_id;
 		$cart->pickupOrDelivery = $request->pickupOrDelivery;
 		$cart->quantity = $request->quantity;
+		$price = Menu::where('id',$request->menu_id)->value('price');
+		$chef_id = Menu::where('id',$request->menu_id)->value('user_id');
+		$cart->price =  sprintf('%0.2f',$price * $request->quantity);
+		$cart->chef_id = $chef_id;
 		if($request->filled('cook_notes'))
 			$cart->cook_notes = $request->cook_notes;
+		$cart->date = $request->date;
+		$cart->available = $request->available;
+		if($request->filled('address'))
+			$cart->address = $request->address;
+		if($request->filled('driver_notes'))
+				$cart->driver_notes = $request->driver_notes;
 		$cart->save();
 	
-		if($request->pickupOrDelivery == 'pickup'){
-			$pickup = new Pickup;
-			$pickup->date = $request->date;
-			$pickup->available = $request->available;
-			$pickup->cart_id = $cart->id;
-			$pickup->save();
-		}
-		if($request->pickupOrDelivery == 'delivery'){
-			$deliver = new Deliver;
-			$deliver->date = $request->date;
-			$deliver->available = $request->available;
-			$deliver->address = $request->address;
-			$deliver->cart_id = $cart->id;
-			if($request->filled('driver_notes'))
-				$deliver->driver_notes = $request->driver_notes;
-			$deliver->save();
-		}
+		
 		$response = [
             'success' => true,
             'message' => 'Added to cart successfully.'
@@ -238,20 +224,18 @@ class CartController extends Controller
 		
 		if ($request->filled('quantity')) {
 			$cart->quantity = $request->quantity;
+			$price = Menu::where('id',$cart->menu_id)->value('price');
+			$cart->price =  sprintf('%0.2f',$price * $request->quantity);
 		}
 		if ($request->filled('cook_notes')) {
 			$cart->cook_notes = $request->cook_notes;
 		}
-		if( $request->filled('address') || $request->filled('driver_notes') ) {
-			$deliver = Deliver::where('cart_id',$cart->id)->first();
-			if( $request->filled('address')){
-				$deliver->address = $request->address;
+		if( $request->filled('driver_notes')){
+				$cart->driver_notes = $request->driver_notes;
 			}
-			if( $request->filled('driver_notes')){
-				$deliver->driver_notes = $request->driver_notes;
+		if( $request->filled('address')){
+				$cart->address = $request->address;
 			}
-			$deliver->save();
-		}
 		
 		$cart->save();
 		$response = [
