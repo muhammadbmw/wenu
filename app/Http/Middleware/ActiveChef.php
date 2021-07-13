@@ -17,11 +17,11 @@ class ActiveChef
      */
     public function handle(Request $request, Closure $next)
     {
-       if (Auth::user()->role == 'chef' && Auth::user()->status== 'active') {
+       if (Auth::user()->role == 'chef' && Auth::user()->chef_status == 1) {
 			return $next($request);
 		 }
 		 else {
-			    return response(json_encode(['error' => 'Chef is not active']), 401)
+			    return response(json_encode(['error' => 'Complete your profile']), 405)
                 ->header('Content-Type', 'text/json');
 		 }
     }

@@ -10,6 +10,9 @@ use App\Models\Payment;
 use App\Models\Order;
 use App\Models\OrderDetails;
 use App\Models\Cart;
+use App\Models\User;
+use Notification;
+use App\Notifications\OrderComplete;
 
 class CheckoutSessionCompletedController extends Controller
 {
@@ -110,7 +113,9 @@ class CheckoutSessionCompletedController extends Controller
 					$cart->status = 'inactive';
 					$cart->save();
 				}
-				
+				//send nototifation to chef about new order
+				$user = User::where('id',$chef_id)->first();
+				Notification::send($user, new OrderComplete());			
 			}
 		}
 	}

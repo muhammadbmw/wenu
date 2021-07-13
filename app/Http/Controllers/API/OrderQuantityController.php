@@ -5,10 +5,9 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Validator;
-use Auth;
 use DB;
 
-class OrderDetailsController extends Controller
+class OrderQuantityController extends Controller
 {
     /**
      * Handle the incoming request.
@@ -19,7 +18,8 @@ class OrderDetailsController extends Controller
     public function __invoke(Request $request)
     {
          $validator = Validator::make($request->all(), [
-			'order_id' =>'required|integer',
+			'date' =>'required|date_format:Y-m-d',
+			'menu_id' =>'required|integer',
         ]);
         if ($validator->fails()) {
             $response = [
@@ -29,23 +29,20 @@ class OrderDetailsController extends Controller
             ];
             return response()->json($response, 200);
         }
-		$order_id = $request->order_id;
-		$orderDetails = DB::table('payments')
-						->join('orders','payments.id','=','orders.payment_id')
-						->where('orders.id',$order_id)
-						->select('subtotal','tax','total')
-						->first();
-		$carts = DB::table('order_details')
+		$date = $request->date;
+		$menu_id = $request->menu_id;
+		$order_quantity = DB::table('orders')
+					->join('order_details','orders.id','=','order_details.order_id')
 					->join('carts','order_details.cart_id','=','carts.id')
-					->join('menus','carts.menu_id','=','menus.id')
-					->where('order_details.order_id',$order_id)
-					->select('carts.id','carts.quantity','carts.pickupOrDelivery as option','carts.date','carts.available',DB::raw("IFNULL(carts.cook_notes,'') as cook_notes"),DB::raw("IFNULL(carts.driver_notes,'') as driver_notes"),'menus.name','carts.price',DB::raw("IFNULL(menus.image,'') as image"))
-					->get();
-		
-		$orderDetails->items = $carts;			
+				   ->where([
+							['carts.date',$date],
+							['orders.status','active'],
+							['carts.menu_id',$menu_id],
+							])
+					->sum('carts.quantity');
 		$response = [
             'success' => true,
-            'data' =>  $orderDetails
+            'order_quantity' =>  (int)$order_quantity
         ];
         return response()->json($response, 200);
     }

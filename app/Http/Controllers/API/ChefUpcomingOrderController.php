@@ -49,7 +49,7 @@ class ChefUpcomingOrderController extends Controller
 							['carts.date','<=',$end_date],
 							])
 					// ->whereBetween('carts.date', [$start_date, $end_date])
-					->select('carts.quantity','carts.price','carts.pickupOrDelivery as option','carts.date','carts.available','carts.address','menus.name','menus.image','users.name as foodie_name','users.email as foodie_email')
+					->select('carts.quantity','carts.price','carts.pickupOrDelivery as option','carts.date','carts.available','carts.address','cook_notes','driver_notes','menus.name','menus.image','users.name as foodie_name','users.email as foodie_email')
 					->orderBy('date','asc')
 					->orderBy('menus.name','asc')
 					->get();
@@ -66,7 +66,7 @@ class ChefUpcomingOrderController extends Controller
 							['carts.pickupOrDelivery',$option],
 							])
 					 ->whereBetween('carts.date', [$start_date, $end_date])
-					->select('carts.quantity','carts.price','carts.pickupOrDelivery as option','carts.date','carts.available','carts.address','menus.name','menus.image','users.name as foodie_name','users.email as foodie_email')
+					->select('carts.quantity','carts.price','carts.pickupOrDelivery as option','carts.date','carts.available','carts.address','cook_notes','driver_notes','menus.name','menus.image','users.name as foodie_name','users.email as foodie_email')
 					->orderBy('date','asc')
 					->orderBy('menus.name','asc')
 					->get();

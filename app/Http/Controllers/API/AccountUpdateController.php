@@ -5,6 +5,9 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\StripeAccount;
+use App\Models\User;
+use App\Models\Profile;
+use App\Models\FoodSafety;
 use Stripe;
 
 class AccountUpdateController extends Controller
@@ -72,6 +75,21 @@ class AccountUpdateController extends Controller
 			if($account->details_submitted){
 				$stripeAccount->details_submitted = 1;
 				$stripeAccount->save();
+				//update chef status if satisfy
+				$user_id = $stripeAccount->user_id;
+				$profile = Profile::where('user_id',$user_id)->first();
+				if($profile){
+					$foodSafety = FoodSafety::where('user_id',$user_id)->first();
+					if($foodSafety){
+						if($foodSafety->status == 'active'){
+							$user = User::where('id',$user_id)->first();
+							$user->chef_status = 1;
+							if($user->foodie_status == 0)
+								$user->foodie_status = 1;
+							$user->save();
+						}
+					}
+				}
 			}
 		}
 	}

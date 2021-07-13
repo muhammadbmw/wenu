@@ -37,6 +37,10 @@ use App\Http\Controllers\API\ChefOrderController;
 use App\Http\Controllers\API\StripeDashboardController;
 use App\Http\Controllers\API\ChefCancelOrderController;
 use App\Http\Controllers\API\ChefUpcomingOrderController;
+use App\Http\Controllers\API\ChefDeliveryController;
+use App\Http\Controllers\API\CheckDeliveryRangeController;
+use App\Http\Controllers\API\OrderQuantityController;
+use App\Http\Controllers\API\CheckoutFilterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -76,8 +80,8 @@ Route::middleware(['auth:api','chef'])->group(function () {
 	Route::post('updateChefProfile', [UserController::class,'update_chef_profile']);
 	Route::get('switch_to_foodie', [SwitchController::class,'chef_to_foodie']);
 	
-	Route::apiResource('dish', DishController::class);
-	Route::post('dishImage', [DishController::class,'update_dish']);
+	Route::apiResource('dish', DishController::class)->only(['index']);
+	
 	Route::apiResource('tag', TagController::class)->only(['index']);
 	Route::apiResource('menuTag', MenuTagController::class)
 					->only(['index', 'store', 'destroy']);
@@ -87,39 +91,71 @@ Route::middleware(['auth:api','chef'])->group(function () {
 					->only(['index', 'store']);
 	Route::get('onboarding',OnboardingController::class);
 	Route::get('check_onboarding',CheckOnboardingController::class);
-});
-
-Route::middleware(['auth:api','activeChef'])->group(function () {
+	
 	Route::apiResource('menu', MenuController::class)
 					->only(['index']);
-	Route::post('saveMenuSequence',[MenuController::class,'saveSequence']);
-	
-	Route::apiResource('menuAvailability', MenuAvailabilityController::class)
-			->only(['index', 'store']);
-		
-	Route::apiResource('menuMedia', MenuMediaController::class)
-					->only(['index', 'store', 'destroy']);
 	Route::get('chef_order',ChefOrderController::class);
 	Route::get('chef_cancel_order',ChefCancelOrderController::class);
 	Route::get('stripe_dashboard',StripeDashboardController::class);
 	Route::get('chef_upcoming_order',ChefUpcomingOrderController::class);
+	//Route::post('saveMenuSequence',[MenuController::class,'saveSequence']);
+	
+	Route::apiResource('menuAvailability', MenuAvailabilityController::class)
+			->only(['index']);
+		
+	Route::apiResource('menuMedia', MenuMediaController::class)
+					->only(['index']);
+	Route::post('chefDelivery', [ChefDeliveryController::class,'store']);
+					
+});
+
+Route::middleware(['auth:api','activeChef'])->group(function () {
+	
+	Route::apiResource('dish', DishController::class)->only(['store','update']);
+	Route::post('dishImage', [DishController::class,'update_dish']);
+	Route::post('saveMenuSequence',[MenuController::class,'saveSequence']);
+	
+	Route::apiResource('menuAvailability', MenuAvailabilityController::class)
+			->only(['store']);
+		
+	Route::apiResource('menuMedia', MenuMediaController::class)
+					->only(['store', 'destroy']);
+	
 });
 
 //foodie api
 Route::middleware(['auth:api','foodie'])->group(function () {
+	Route::get('foodieProfile', [UserController::class,'foodie_profile']);
+	Route::post('updateFoodieProfile', [UserController::class,'update_foodie_profile']);
 	Route::get('switch_to_chef', [SwitchController::class,'foodie_to_chef']);
 	Route::post('scheduledDishes',ScheduledDishesController::class);
+	Route::post('checkDeliveryRange',CheckDeliveryRangeController::class);
 	Route::post('cooksNear',CookNearController::class);
 	Route::get('dishDetails',DishDetailsController::class);
 	Route::get('chefKitchen',ChefKitchenController::class);
 	Route::post('chefScheduledDishes',ChefScheduledDishesController::class);
 	Route::get('addToCart',AddToCartController::class);
 	Route::apiResource('cart', CartController::class)
-					->only(['index', 'store', 'destroy','update']);
-	Route::post('checkout_session',CheckoutSessionController::class);
+					->only(['index']);
 	Route::apiResource('order',OrderController::class)
 						->only(['index']);
 	Route::get('cancel_order',[OrderController::class,'cancel_order']);
 	Route::get('orderDetails',OrderDetailsController::class);
 	Route::get('upcoming_pickup_delivery',UpcomingPickupDeliveryController::class);
+});
+
+Route::middleware(['auth:api','activeFoodie'])->group(function () {
+	Route::apiResource('cart', CartController::class)
+					->only(['store', 'destroy','update']);
+	Route::post('checkout_session',CheckoutSessionController::class);
+	Route::post('check_order_quantity',OrderQuantityController::class);
+	Route::post('checkout_filter',CheckoutFilterController::class);
+});
+
+//admin api
+Route::middleware(['auth:api','admin'])->group(function () {
+	Route::get('chefsFoodSafety', [FoodSafetyController::class,'chefsFoodSafety']);
+	Route::apiResource('foodSafety', FoodSafetyController::class)
+					->only(['update']);
+	
 });

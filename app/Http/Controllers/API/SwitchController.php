@@ -16,10 +16,12 @@ class SwitchController extends Controller
 		 $user = Auth::user();
 		 $user->role = 'foodie';
 		 $user->save();
+		 $status = $user->foodie_status ? 'active': 'pending';
 		  
 		 $response = [
             'success' => true,
 			'role' => 'foodie',
+			'status' => $status,
            'message' => 'Switch successful.'
 			
         ];
@@ -28,24 +30,19 @@ class SwitchController extends Controller
 	
 	public function foodie_to_chef()
 	{
-		 $user = Auth::user();
-		 $profile = $user->profile;
-		 if($profile){
-			$user->role = 'chef';
-			$user->save();
+		$user = Auth::user();
+		$user->role = 'chef';
+		$user->save();
+		$status = $user->chef_status ? 'active': 'pending';
 			
 			$response = [
             'success' => true,
 			'role' => 'chef',
+			'status' => $status,
 			'message' => 'Switch successful.'
 			];
-		 } 
-		 else {
-			 $response = [
-            'success' => false,
-			'message' => 'Please create profile to become chef.'
-			];
-		 }
+		 
+		
         return response()->json($response, 200);
 	}
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\FoodSafety;
+use App\Models\ChefDelivery;
 use App\Models\SocialLogin;
 use App\Models\StripeAccount;
 use Illuminate\Http\Request;
@@ -85,6 +86,7 @@ class UserController extends Controller
 	$user->password = bcrypt($request->password);
 	//$user->status = 'pending';
 	$user->status = 'active';
+	$user->foodie_status = 1;
 	$user->login_type = 'Registration';
     $user->save();
 	$user_id = $user->id;
@@ -196,12 +198,19 @@ class UserController extends Controller
 				$success['user_id'] = $user->id;
 				$success['name'] = $user->name;
 				$success['role'] = $user->role;
-				$success['status'] = $user->status;
+				//$success['status'] = $user->status;
 				$profile = $user->profile;
 				if($profile){
 					$success['image'] = $profile->image;
 				}
-            
+				else 
+					$success['image'] = '';
+				if($user->role == 'chef'){
+					$success['status'] = $user->chef_status ? 'active': 'pending';
+				}
+				if($user->role == 'foodie'){
+					$success['status'] = $user->foodie_status ? 'active': 'pending';
+				}
 				$response = [
 				'success' => true,
 				'data' => $success,
@@ -241,6 +250,32 @@ class UserController extends Controller
 	{
 		$user = Auth::user();
 		$profile = $user->profile;
+		if($profile){
+			$city = $profile->city;
+			$address = $profile->address;
+			$unit = $profile->unit;
+			$province = $profile->province;
+			$postal_code = $profile->postal_code;
+			$mobile = $profile->mobile;
+			$image = $profile->image;
+			$latitude = $profile->latitude;
+			$longitude = $profile->longitude;
+			$show_address = $profile->show_address?true:false;
+			$show_number = $profile->show_number?true:false;
+		}
+		else {
+			$city = '';
+			$address = '';
+			$unit = '';
+			$province = '';
+			$postal_code = '';
+			$mobile =  '';
+			$image = '';
+			$latitude = '';
+			$longitude =  '';
+			$show_address = false;
+			$show_number = false;
+		}
 		$foodSafety = FoodSafety::where('user_id',$user->id)
 					->first();
 		if($foodSafety){
@@ -264,12 +299,23 @@ class UserController extends Controller
 		else {
 			$onboard = false;
 		}
-		 
-		$data = [ 'name' => $user->name,'first_name' => $user->first_name,'last_name' => $user->last_name,'email' => $user->email,'city' => $profile->city, 'address' => $profile->address,
-				 'unit' => $profile->unit,'province' => $profile->province, 'postal_code' => $profile->postal_code,
-				 'mobile' => $profile->mobile, 'image' => $profile->image,
-				 'latitude' => $profile->latitude, 'longitude' => $profile->longitude,
-				 'food_certificate_file' => $food_certificate_file, 'food_certificate_expiration_date' => $food_certificate_expiration_date,'food_certificate_status' => $food_certificate_status,'onboard' => $onboard
+		//check chef delivery
+		$chefDelivery = ChefDelivery::where('user_id',$user->id)->first();
+		if($chefDelivery){
+			$delivery = $chefDelivery->delivery? true: false;
+			$delivery_range = $chefDelivery->delivery_range;
+			$charge_per_delivery = $chefDelivery->charge_per_delivery;
+		}
+		else {
+			$delivery = "";
+			$delivery_range = "";
+			$charge_per_delivery = "";
+		}
+		$data = [ 'name' => $user->name,'first_name' => is_null($user->first_name)? '':$user->first_name,'last_name' => is_null($user->last_name)? '':$user->last_name,'email' => $user->email,'status' => $user->chef_status? 'active':'pending','city' => $city, 'address' => $address,
+				 'unit' => is_null($unit)? '':$unit,'province' => $province, 'postal_code' => $postal_code,
+				 'mobile' => $mobile, 'image' => is_null($image)?'':$image,
+				 'latitude' => is_null($latitude)?'':$latitude, 'longitude' => is_null($longitude)?'':$longitude,'show_address' => $show_address, 'show_number'=> $show_number,
+				 'food_certificate_file' => $food_certificate_file, 'food_certificate_expiration_date' => $food_certificate_expiration_date,'food_certificate_status' => $food_certificate_status,'onboard' => $onboard,'delivery' => $delivery,'delivery_range' => $delivery_range, 'charge_per_delivery' => $charge_per_delivery
 				];
 		 
 		 $response = [
@@ -283,8 +329,28 @@ class UserController extends Controller
 	//update chef profile
 	public function update_chef_profile(Request $request)
 	{
-		 $user = Auth::user();
-		 $profile = $user->profile;
+		$validator = Validator::make($request->all(), [
+        'name' => 'required',
+		'first_name' => 'nullable',
+		'last_name' => 'nullable',
+		'city' => 'required',
+		'address' => 'required',
+		'province' => 'required',
+		'unit' => 'nullable',
+		'mobile' => 'required',
+		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
+		'postal_code' => 'required|string|min:6|max:7',
+    ]);
+    if ($validator->fails()) {
+        $response = [
+            'success' => false,
+            'data' => $validator->errors(),
+            'message' => 'Validation Error.'
+        ];
+        return response()->json($response, 200);
+    }
+		$user = Auth::user();
+		$user_id = $user->id;
 		
 		if ($request->filled('name')) {
 			$user->name = $request->name;
@@ -295,10 +361,16 @@ class UserController extends Controller
 		if ($request->filled('last_name')) {
 			$user->last_name = $request->last_name;
 		}
-		if ($request->filled('password')) {
+		/*if ($request->filled('password')) {
 			$user->password = bcrypt($request->password);
-		}
+		}*/
 		$user->save();
+		
+		 $profile = $user->profile;
+		 if(empty($profile)){
+			 $profile = new Profile;
+			 $profile->user_id = $user_id;
+		 }
 		
 		if ($request->filled('city')) {
 			$profile->city = $request->city;
@@ -306,8 +378,12 @@ class UserController extends Controller
 		if ($request->filled('address')) {
 			$profile->address = $request->address;
 		}
+		if ($request->filled('unit')) {
+			$profile->unit = $request->unit;
+		}
 		if ($request->filled('province')) {
 			$profile->province = $request->province;
+			$profile->timezone = $this->get_time_zone($request->province);
 		}
 		if ($request->filled('postal_code')) {
 			$profile->postal_code = $request->postal_code;
@@ -320,6 +396,12 @@ class UserController extends Controller
 		}
 		if ($request->filled('mobile')) {
 			$profile->mobile = $request->mobile;
+		}
+		if ($request->filled('show_address')) {
+			$profile->show_address = $request->show_address;
+		}
+		if ($request->filled('show_number')) {
+			$profile->show_number = $request->show_number;
 		}
 		if($request->hasFile('image')){
             //get image file.
@@ -340,10 +422,12 @@ class UserController extends Controller
             $profile->image = $path;
         }
 		$profile->save();
+		//check to update chef status
+		$this->updateChefStatus($user);
 		
-		$data = [ 'name' => $user->name,'first_name' => $user->first_name,'last_name' => $user->last_name,'city' => $profile->city, 'address' => $profile->address,
+		$data = [ 'name' => $user->name,'first_name' => is_null($user->first_name)?'':$user->first_name,'last_name' => is_null($user->last_name)?'':$user->last_name,'status' => $user->chef_status? 'active':'pending','city' => $profile->city, 'address' => $profile->address,'unit' => is_null($profile->unit)? '':$profile->unit,
 				 'province' => $profile->province, 'postal_code' => $profile->postal_code,
-				 'mobile' => $profile->mobile, 'image' => $profile->image
+				 'mobile' => $profile->mobile, 'image' => is_null($profile->image)?'':$profile->image, 'latitude' => is_null($profile->latitude)?'':$profile->latitude, 'longitude' => is_null($profile->longitude)?'':$profile->longitude,'show_address' => $profile->show_address?true:false,'show_number' =>  $profile->show_number?true:false
 				];
 		 
 		 $response = [
@@ -353,7 +437,7 @@ class UserController extends Controller
         ];
         return response()->json($response, 200);
 	}
-	//social login for foodie
+	//social login for foodie and chef
   public function social_login(Request $request)
   {
       $validator = Validator::make($request->all(), [
@@ -362,6 +446,7 @@ class UserController extends Controller
 		  'provider_id' => 'required',
 		  'name' => 'required',
 		  'email' => 'required',
+		  'role' => 'required'
 
       ]);
       if ($validator->fails()) {
@@ -376,6 +461,7 @@ class UserController extends Controller
 	  $provider_id = $request->provider_id;
 	  $name = $request->name;
 	  $email = $request->email;
+	  $role = $request->role;
 	  
 	  if($provider_name == 'facebook'){
 		  $input_token = $request->token;
@@ -397,7 +483,19 @@ class UserController extends Controller
 						$success['user_id'] = $user->id;
 						$success['name'] = $user->name;
 						$success['role'] = $user->role;
-						$success['status'] = $user->status;
+						//$success['status'] = $user->status;
+						$profile = $user->profile;
+						if($profile){
+							$success['image'] = $profile->image;
+						}
+						else
+							$success['image'] = '';
+						if($user->role == 'chef'){
+							$success['status'] = $user->chef_status ? 'active': 'pending';
+						}
+						if($user->role == 'foodie'){
+							$success['status'] = $user->foodie_status ? 'active': 'pending';
+						}
 							
 					   $response = [
 						'success' => true,
@@ -420,7 +518,7 @@ class UserController extends Controller
 						$user = new User;
 						$user->name = $name;
 						$user->email = $email;
-						$user->role = 'foodie';
+						$user->role = $role;
 						//$user->status = 'pending';
 						$user->status = 'active';
 						$user->login_type = 'Facebook';
@@ -435,7 +533,14 @@ class UserController extends Controller
 						$success['user_id'] = $user->id;
 						$success['name'] = $user->name;
 						$success['role'] = $user->role;
-						$success['status'] = $user->status;
+						//$success['status'] = $user->status;
+						$success['image'] = '';
+						if($user->role == 'chef'){
+							$success['status'] = $user->chef_status ? 'active': 'pending';
+						}
+						if($user->role == 'foodie'){
+							$success['status'] = $user->foodie_status ? 'active': 'pending';
+						}
 						
 					   $response = [
 						'success' => true,
@@ -481,7 +586,19 @@ class UserController extends Controller
 				$success['user_id'] = $user->id;
 				$success['name'] = $user->name;
 				$success['role'] = $user->role;
-				$success['status'] = $user->status;
+				//$success['status'] = $user->status;
+				$profile = $user->profile;
+				if($profile){
+					$success['image'] = $profile->image;
+				}
+				else
+					$success['image'] = '';
+				if($user->role == 'chef'){
+					$success['status'] = $user->chef_status ? 'active': 'pending';
+				}
+				if($user->role == 'foodie'){
+					$success['status'] = $user->foodie_status ? 'active': 'pending';
+				}
 					
 			   $response = [
 				'success' => true,
@@ -504,7 +621,7 @@ class UserController extends Controller
 					$user = new User;
 					$user->name = $name;
 					$user->email = $email;
-					$user->role = 'foodie';
+					$user->role = $role;
 					//$user->status = 'pending';
 					$user->status = 'active';
 					$user->login_type = 'Google';
@@ -519,8 +636,15 @@ class UserController extends Controller
 					$success['user_id'] = $user->id;
 					$success['name'] = $user->name;
 					$success['role'] = $user->role;
-					$success['status'] = $user->status;
-					
+					$success['image'] = '';
+					//$success['status'] = $user->status;
+					if($user->role == 'chef'){
+						$success['status'] = $user->chef_status ? 'active': 'pending';
+					}
+					if($user->role == 'foodie'){
+						$success['status'] = $user->foodie_status ? 'active': 'pending';
+					}
+				
 				   $response = [
 					'success' => true,
 					'data' => $success,
@@ -547,6 +671,8 @@ class UserController extends Controller
   {
     $validator = Validator::make($request->all(), [
         'name' => 'required',
+		'first_name' => 'nullable',
+		'last_name' => 'nullable',
         'email' => 'required|email:rfc,dns|unique:users',
         'password' => 'required|string',
 		'city' => 'required',
@@ -567,10 +693,17 @@ class UserController extends Controller
     }
 	$user = new User;
 	$user->name = $request->name;
+	if ($request->filled('first_name')) {
+		$user->first_name = $request->first_name;
+	}
+	if ($request->filled('last_name')) {
+		$user->last_name = $request->last_name;
+	}
 	$user->email = $request->email;
 	$user->password = bcrypt($request->password);
 	$user->role = 'foodie';
 	$user->status = 'active';
+	$user->foodie_status = 1;
 	$user->login_type = 'Registration';
     $user->save();
 	$user_id = $user->id;
@@ -615,6 +748,165 @@ class UserController extends Controller
     return response()->json($response, 200);
 
   }
+  //update foodie profile
+	public function update_foodie_profile(Request $request)
+	{
+		$validator = Validator::make($request->all(), [
+        'name' => 'required',
+		'first_name' => 'nullable',
+		'last_name' => 'nullable',
+		'city' => 'required',
+		'address' => 'required',
+		'unit' => 'nullable',
+		'province' => 'required',
+		'mobile' => 'required',
+		'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:5120',
+		'postal_code' => 'required|string|min:6|max:7',
+    ]);
+    if ($validator->fails()) {
+        $response = [
+            'success' => false,
+            'data' => $validator->errors(),
+            'message' => 'Validation Error.'
+        ];
+        return response()->json($response, 200);
+    }
+		$user = Auth::user();
+		$user_id = $user->id;
+		
+		if ($request->filled('name')) {
+			$user->name = $request->name;
+		}
+		if ($request->filled('first_name')) {
+			$user->first_name = $request->first_name;
+		}
+		if ($request->filled('last_name')) {
+			$user->last_name = $request->last_name;
+		}
+		/*if ($request->filled('password')) {
+			$user->password = bcrypt($request->password);
+		}*/
+		
+		 $profile = $user->profile;
+		 if(empty($profile)){
+			 $profile = new Profile;
+			 $profile->user_id = $user_id;
+		 }
+		
+		if ($request->filled('city')) {
+			$profile->city = $request->city;
+		}
+		if ($request->filled('address')) {
+			$profile->address = $request->address;
+		}
+		if ($request->filled('unit')) {
+			$profile->unit = $request->unit;
+		}
+		if ($request->filled('province')) {
+			$profile->province = $request->province;
+			$profile->timezone = $this->get_time_zone($request->province);
+		}
+		if ($request->filled('postal_code')) {
+			$profile->postal_code = $request->postal_code;
+		}
+		if ($request->filled('latitude')) {
+			$profile->latitude = $request->latitude;
+		}
+		if ($request->filled('longitude')) {
+			$profile->longitude = $request->longitude;
+		}
+		if ($request->filled('mobile')) {
+			$profile->mobile = $request->mobile;
+		}
+		if ($request->filled('show_address')) {
+			$profile->show_address = $request->show_address;
+		}
+		if ($request->filled('show_number')) {
+			$profile->show_number = $request->show_number;
+		}
+		if($request->hasFile('image')){
+            //get image file.
+           $image = $request->image;   
+            //get just extension.
+            $ext = $image->getClientOriginalExtension();           
+            //make a unique name
+            $filename = uniqid().'.'.$ext;          
+            //upload the image
+            $image->storeAs('public/images',$filename);
+			$path = asset('public/storage/images/'.$filename);
+			 //delete the previous image.
+			if(isset($profile->image))
+			{
+				$mimage = basename($profile->image);
+				Storage::delete("public/images/{$mimage}");
+			}
+            $profile->image = $path;
+        }
+		$profile->save();
+		$profile_id = $profile->id;
+		if($profile_id){
+			$user->foodie_status = 1;
+		}
+		
+		$user->save();
+		
+		$data = [ 'name' => $user->name,'first_name' => is_null($user->first_name)?'':$user->first_name,'last_name' => is_null($user->last_name)?'':$user->last_name,'status' => $user->foodie_status? 'active':'pending','city' => $profile->city, 'address' => $profile->address,'unit' => is_null($profile->unit)? '':$profile->unit,
+				 'province' => $profile->province, 'postal_code' => $profile->postal_code,
+				 'mobile' => $profile->mobile, 'image' => is_null($profile->image)?'':$profile->image, 'latitude' => is_null($profile->latitude)?'':$profile->latitude, 'longitude' => is_null($profile->longitude)?'':$profile->longitude,'show_address' => $profile->show_address?true:false,'show_number' =>  $profile->show_number?true:false
+				];
+		 
+		 $response = [
+            'success' => true,
+            'data' => $data,
+			'message' => 'Profile updated successfully.'
+        ];
+        return response()->json($response, 200);
+	}
+	//get foodie profile
+	public function foodie_profile()
+	{
+		$user = Auth::user();
+		$profile = $user->profile;
+		if($profile){
+			$city = $profile->city;
+			$address = $profile->address;
+			$unit = $profile->unit;
+			$province = $profile->province;
+			$postal_code = $profile->postal_code;
+			$mobile = $profile->mobile;
+			$image = $profile->image;
+			$latitude = $profile->latitude;
+			$longitude = $profile->longitude;
+			$show_address = $profile->show_address?true:false;
+			$show_number = $profile->show_number?true:false;
+		}
+		else {
+			$city = '';
+			$address = '';
+			$unit = '';
+			$province = '';
+			$postal_code = '';
+			$mobile =  '';
+			$image = '';
+			$latitude = '';
+			$longitude =  '';
+			$show_address = false;
+			$show_number = false;
+		}
+		
+		$data = [ 'name' => $user->name,'first_name' => is_null($user->first_name)? '':$user->first_name,'last_name' => is_null($user->last_name)? '':$user->last_name,'email' => $user->email,'status' => $user->chef_status? 'active':'pending','city' => $city, 'address' => $address,
+				 'unit' => is_null($unit)? '':$unit,'province' => $province, 'postal_code' => $postal_code,
+				 'mobile' => $mobile, 'image' => is_null($image)?'':$image,
+				 'latitude' => is_null($latitude)?'':$latitude, 'longitude' => is_null($longitude)?'':$longitude,'show_address' => $show_address, 'show_number'=> $show_number,
+					];
+		
+		 $response = [
+            'success' => true,
+            'data' => $data
+			
+        ];
+        return response()->json($response, 200);
+	}
   //get timezone based on province
 	private function get_time_zone($region)
 	{
@@ -663,5 +955,34 @@ class UserController extends Controller
 			}
 			return $timezone;
 	}
+	//update chef status if satisfy
+	private function updateChefStatus(User $user)
+	{
+		$chef_status = $user->chef_status;
+		if($chef_status == 0)
+		{
+			$profile = $user->profile;
+			if($profile){
+				if($user->foodie_status == 0)
+					$user->foodie_status = 1;
+				$foodSafety = FoodSafety::where('user_id',$user->id)
+					->first();
+				if($foodSafety){
+					if($foodSafety->status == 'active'){
+						$stripeAccount = StripeAccount::where('user_id',$user->id)->first();
+						if($stripeAccount) {
+							if($stripeAccount->details_submitted){
+								$user->chef_status = 1;
+								$user->save();
+								//$chef_status = $user->chef_status;
+							}
+								
+						}
+					}
+				}
+			}
+		}
 
+	}
+	
 }

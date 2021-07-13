@@ -41,7 +41,7 @@ class CookNearController extends Controller
 							->join('profiles','users.id','=','profiles.user_id')
 							->where([
 							  ['users.status','active'],
-							  ['users.role', 'chef']
+							   ['users.chef_status', 1]
 							])
 							->select('users.id','users.name','profiles.latitude','profiles.longitude','profiles.image')
 							->get();

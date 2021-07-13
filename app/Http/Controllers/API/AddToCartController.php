@@ -9,6 +9,7 @@ use DB;
 use Auth;
 use App\Models\Menu;
 use App\Models\MenuAvailability;
+use App\Models\ChefDelivery;
 
 class AddToCartController extends Controller
 {
@@ -40,6 +41,14 @@ class AddToCartController extends Controller
 		$data['price'] = $menu->price;
 		$data['max_portions'] = $menu->max_portions;
 		$data['option'] = $menu->options;
+		//check chef delivery
+		$chefDelivery = ChefDelivery::where('user_id',$user_id)->first();
+		if($chefDelivery){
+			$delivery = $chefDelivery->delivery? true: false;
+		}
+		else 
+			$delivery = false;
+		$data['delivery'] = $delivery;
 		
 		//menu availability
 		$menuAvailability = MenuAvailability::where([

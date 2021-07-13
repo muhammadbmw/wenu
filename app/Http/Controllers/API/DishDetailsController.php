@@ -10,6 +10,7 @@ use App\Models\Menu;
 use App\Models\MenuTag;
 use App\Models\MenuMedia;
 use App\Models\MenuAvailability;
+use App\Models\ChefDelivery;
 
 class DishDetailsController extends Controller
 {
@@ -44,6 +45,15 @@ class DishDetailsController extends Controller
 		$data['instructions'] = $menu->instructions;
 		$data['max_portions'] = $menu->max_portions;
 		$data['customer_prep_time'] = $menu->customer_prep_time;
+		$data['options'] = $menu->options;
+		//check chef delivery
+		$chefDelivery = ChefDelivery::where('user_id',$user_id)->first();
+		if($chefDelivery){
+			$delivery = $chefDelivery->delivery? true: false;
+		}
+		else 
+			$delivery = false;
+		$data['delivery'] = $delivery;
 		//menu media
 		$menuMedias = MenuMedia::where('menu_id',$menu_id)
 					->select('link','type')

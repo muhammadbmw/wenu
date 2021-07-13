@@ -49,7 +49,7 @@ class UpcomingPickupDeliveryController extends Controller
 							['carts.date','<=',$end_date],
 							])
 					// ->whereBetween('carts.date', [$start_date, $end_date])
-					->select('carts.quantity','carts.price','carts.pickupOrDelivery as option','carts.date','carts.available','carts.address','menus.name','menus.image','users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"))
+					->select('carts.quantity','carts.price','carts.pickupOrDelivery as option','carts.date','carts.available','carts.address','menus.name','menus.image','users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"),'profiles.show_address','profiles.show_number')
 					->orderBy('date','asc')
 					->get();
 		} else {

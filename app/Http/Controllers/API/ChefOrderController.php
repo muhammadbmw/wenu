@@ -34,14 +34,14 @@ class ChefOrderController extends Controller
 		
 		$orders = DB::table('orders')
 					->join('users','orders.foodie_id','=','users.id')
-					//->join('profiles','users.id','=','profiles.user_id')
+					->join('profiles','users.id','=','profiles.user_id')
 					->join('payments','orders.payment_id','=','payments.id')
 					->where([
 						['orders.chef_id',$chef_id],
 						['orders.status','active']
 					])
 					->orderBy('orders.id','desc')
-					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),'users.name as foodie_name','users.email as foodie_email','payments.transfer_amount')
+					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),'users.name as foodie_name','users.email as foodie_email','profiles.mobile as foodie_phone','profiles.image as foodie_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as foodie_address"),'profiles.show_address','profiles.show_number','payments.transfer_amount')
 					->get();
 		if($orders){
 			foreach($orders as $order) {

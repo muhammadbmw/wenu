@@ -4,6 +4,8 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\FoodSafety;
+use App\Models\User;
+use App\Models\Profile;
 use Illuminate\Http\Request;
 use Validator;
 use Storage;
@@ -68,6 +70,7 @@ class FoodSafetyController extends Controller
 			$path = asset('public/storage/images/'.$filename);
             $foodSafety->file = $path;
         }
+		$foodSafety->status = 'pending';
 		$foodSafety->save();
 		$response = [
             'success' => true,
@@ -97,8 +100,7 @@ class FoodSafetyController extends Controller
     public function update(Request $request, FoodSafety $foodSafety)
     {
         $validator = Validator::make($request->all(), [
-			'expiration_date' => 'nullable',
-			'file' => 'nullable|mimes:jpeg,png,jpg,pdf|max:2048',
+			'status' => 'required',
         ]);
         if ($validator->fails()) {
             $response = [
@@ -108,30 +110,26 @@ class FoodSafetyController extends Controller
             ];
             return response()->json($response, 200);
         }
-		if ($request->filled('expiration_date')) {
-			$foodSafety->expiration_date = $request->expiration_date;
-		}
-		
-		 if($request->hasFile('file')){
-           $file = $request->file;   
-            //get just extension.
-            $ext = $file->getClientOriginalExtension();           
-            //make a unique name
-            $filename = uniqid().'.'.$ext;          
-            $file->storeAs('public/images',$filename);
-			$path = asset('public/storage/images/'.$filename);
-			//delete the previous image.
-			if(isset($foodSafety->file))
-			{
-				$mimage = basename($foodSafety->file);
-				Storage::delete("public/images/{$mimage}");
-			}
-            $foodSafety->file = $path;
-        }
+		$foodSafety->status = $request->status;
 		$foodSafety->save();
+		//update chef status if satisfy
+		$user_id = $foodSafety->user_id;
+		$user = User::where('id',$user_id)->first();
+		if($request->status == 'active'){
+			$profile = Profile::where('user_id',$user_id)->first();
+			if($profile){
+				$user->chef_status = 1;
+				if($user->foodie_status == 0)
+					$user->foodie_status = 1;
+				$user->save();
+			}
+		} else {
+			$user->chef_status = 0;
+			$user->save();
+		}
 		$response = [
             'success' => true,
-            'message' => 'Food safety certificate updated successfully.'
+            'message' => 'Status updated successfully.'
         ];
         return response()->json($response, 200);
     }
@@ -163,4 +161,16 @@ class FoodSafetyController extends Controller
         ];
         return response()->json($response, 200);
     }
+	public function chefsFoodSafety()
+	{
+		$foodSafety = DB::table('food_safeties as f')
+						->join('users as u','f.user_id','=','u.id')
+						->where('u.status','active')
+						->select('f.id','u.name','u.email','expiration_date','file','f.status')->get();
+		$response = [
+            'success' => true,
+            'data' =>  $foodSafety
+        ];
+        return response()->json($response, 200);
+	}
 }

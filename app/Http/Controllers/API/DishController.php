@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
+use App\Models\ChefDelivery;
 use Illuminate\Http\Request;
 use Validator;
 use Storage;
@@ -23,8 +24,16 @@ class DishController extends Controller
 		 $dishes = Menu::where('user_id',$user_id)
 						->orderBy('sequence','asc')
 					->get();
+		//check chef delivery
+		$chefDelivery = ChefDelivery::where('user_id',$user_id)->first();
+		if($chefDelivery){
+			$delivery = $chefDelivery->delivery? true: false;
+		}
+		else 
+			$delivery = false;
 		$response = [
             'success' => true,
+			'delivery' => $delivery,
             'data' =>  $dishes
         ];
         return response()->json($response, 200);

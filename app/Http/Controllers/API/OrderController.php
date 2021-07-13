@@ -47,7 +47,7 @@ class OrderController extends Controller
 						['orders.status','active']
 					])
 					->orderBy('orders.id','desc')
-					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),'orders.chef_id','users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone','profiles.image as chef_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"),'payments.total')
+					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),'orders.chef_id','users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone','profiles.image as chef_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"),'profiles.show_address','profiles.show_number','payments.total')
 					->get();
 		if($orders){
 			foreach($orders as $order) {
@@ -131,39 +131,60 @@ class OrderController extends Controller
 		$reason = $request->reason;
 		$user_id = Auth::id();
 		$order_id = $order->id;
-		//check order cutoff time not more than 24 hours
-		$items = DB::table('order_details')
-					->join('carts','order_details.cart_id','=','carts.id')
-					->where('order_details.order_id',$order_id)
-					->select('carts.date')
-					->get();
+		$foodie = false;
+		$chef = false;
+		if($user_id == $order->chef_id){
+			$chef = true;
+		}
+		if($user_id == $order->foodie_id){
+			$foodie = true;
+		}
 		$check = true;
-		foreach($items as $item){
-			$date = $item->date;
-			if(strtotime($date) < strtotime($cutoff )){
-				$check = false;
-				break;
+		//check order cutoff time not more than 24 hours for foodie
+		if($foodie) {
+			$items = DB::table('order_details')
+						->join('carts','order_details.cart_id','=','carts.id')
+						->where('order_details.order_id',$order_id)
+						->select('carts.date')
+						->get();
+			
+			foreach($items as $item){
+				$date = $item->date;
+				if(strtotime($date) < strtotime($cutoff )){
+					$check = false;
+					break;
+				}
+			}
+			if(!$check){
+				$response = [
+					'success' => false,
+					'message' =>  'Cancellation cutoff time exceeded'
+				];
+				return response()->json($response, 200);
 			}
 		}
-		if(!$check){
-			$response = [
-				'success' => false,
-				'message' =>  'Cancellation cutoff time exceeded'
-			];
-			return response()->json($response, 200);
-		}
-		
 		if($order->status == 'active'){
 			$payment_id = $order->payment_id;
 			//get the payment intent for refund
-			$payment_intent = Payment::where('id',$payment_id)->value('payment_intent');
+			$payment = Payment::where('id',$payment_id)->first();
+			$payment_intent = $payment->payment_intent;
+			$amount = sprintf('%0.2f',($payment->total - ($payment->service_fee +$payment->service_fee_tax)));
 			//refund the amount
 			Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
 			try{
-				$re = Stripe\Refund::create([
+				if($chef){
+					$re = Stripe\Refund::create([
+						  'payment_intent' => $payment_intent,
+						  'reverse_transfer' => true,
+						]);
+				}
+				else {
+					$re = Stripe\Refund::create([
+					  'amount' => $amount * 100,
 					  'payment_intent' => $payment_intent,
 					  'reverse_transfer' => true,
 					]);
+				}
 			} catch(Exception $e){
 				$response = [
 					'success' => false,
@@ -223,7 +244,7 @@ class OrderController extends Controller
 						['orders.status','cancelled']
 					])
 					->orderBy('orders.id','desc')
-					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),DB::raw("IFNULL(orders.reason,'') as cancel_reason"),'users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone','profiles.image as chef_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"),'payments.total','refunds.amount as refund_amount',DB::raw("DATE_FORMAT(refunds.created_at,'%Y-%m-%d') as cancel_date"),'staff.name as cancel_by')
+					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),DB::raw("IFNULL(orders.reason,'') as cancel_reason"),'users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone','profiles.image as chef_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"),'profiles.show_address','profiles.show_number','payments.total','refunds.amount as refund_amount',DB::raw("DATE_FORMAT(refunds.created_at,'%Y-%m-%d') as cancel_date"),'staff.name as cancel_by')
 					->get();
 		if($orders){
 			foreach($orders as $order) {

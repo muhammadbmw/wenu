@@ -18,7 +18,7 @@ class Chef
     public function handle(Request $request, Closure $next)
     {
          if (Auth::user()->role != 'chef') {
-            return response(json_encode(['error' => 'Unauthorised']), 401)
+            return response(json_encode(['error' => 'Unauthorised']), 405)
                 ->header('Content-Type', 'text/json');
         }	
 		return $next($request);

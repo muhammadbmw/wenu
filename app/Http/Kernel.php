@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
 		'adminOrChef' => \App\Http\Middleware\AdminOrChef::class,
 		'activeChef' => \App\Http\Middleware\ActiveChef::class,
 		'foodie' => \App\Http\Middleware\Foodie::class,
+		'activeFoodie' => \App\Http\Middleware\ActiveFoodie::class,
     ];
 }

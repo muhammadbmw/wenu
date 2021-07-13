@@ -10,6 +10,7 @@ use Laravel\Passport\HasApiTokens;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use App\Notifications\ResetPasswordNotification;
 
+
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens,HasFactory, Notifiable;
@@ -54,4 +55,5 @@ class User extends Authenticatable implements MustVerifyEmail
 	{
 		$this->notify(new ResetPasswordNotification($token));
 	}
+	
 }

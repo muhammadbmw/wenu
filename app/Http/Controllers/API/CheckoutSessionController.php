@@ -10,6 +10,7 @@ use App\Models\CheckoutSession;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\PlatformFee;
+use App\Models\ChefDelivery;
 use Validator;
 use Auth;
 use DB;
@@ -57,10 +58,11 @@ class CheckoutSessionController extends Controller
 		$account_id = StripeAccount::where('user_id',$chef_id)->value('account_id');
 		$product = [];
 		$subtotal = 0;
+		$delivery_date = [];
 		$items = DB::table('carts')
 						->join('menus','carts.menu_id','=','menus.id')
 						->whereIn('carts.id',$cart_ids)
-						->select('quantity','name','menus.price','image')
+						->select('quantity','name','menus.price','image','pickupOrDelivery','date')
 						->get();			
 		foreach($items as $item){
 			$subtotal += $item->price * $item->quantity;
@@ -72,12 +74,16 @@ class CheckoutSessionController extends Controller
 				  'unit_amount' => $item->price * 100,
 				  'product_data' => [
 					'name' => $item->name,
+					'description' => ucfirst($item->pickupOrDelivery).' Date: '.$item->date,
 					'images' => [$item->image],
 				  ],
 				],
 				'quantity' => $item->quantity,
 				 'tax_rates' => [$tax_rate]
 			]);
+			//check if item delivery
+			if($item->pickupOrDelivery == 'delivery')
+				array_push($delivery_date,$item->date);
 		}
 		//add service fee
 		array_push($product, [
@@ -91,6 +97,24 @@ class CheckoutSessionController extends Controller
 				'quantity' => 1,
 				 'tax_rates' => [$tax_rate]
 			]);
+		//add delivery fee
+		$n = count($delivery_date);
+		$delivery = $this->countDistinct($delivery_date, $n);
+		if($delivery>0){
+			$delivery_fee = ChefDelivery::where('user_id',$chef_id)->value('charge_per_delivery');
+			array_push($product, [
+				'price_data' => [
+				  'currency' => 'cad',
+				  'unit_amount' => $delivery_fee * 100,
+				  'product_data' => [
+					'name' => 'Delivery fee',
+				  ],
+				],
+				'quantity' => $delivery,
+				 'tax_rates' => [$tax_rate]
+			]);
+			$subtotal += $delivery_fee * $delivery;
+		}
 			
 		$subtotal += sprintf('%0.2f',($subtotal * $tax_percent));
 
@@ -109,7 +133,7 @@ class CheckoutSessionController extends Controller
 		  'line_items' => [$product],
 		  'metadata' => ['cart_id' => $cart,'chef_id' => $chef_id,'afm' => $application_fee_amount,'sf' => $service_fee],
 		  'payment_intent_data' => [
-			'receipt_email' => $chef_email,
+			//'receipt_email' => $chef_email,
 			'transfer_data' => [
 				'amount' => $transfer_amount * 100,
 			  'destination' => $account_id,
@@ -235,5 +259,24 @@ class CheckoutSessionController extends Controller
                     break;
 			}
 			return $tax_percent;
+	}
+	private function countDistinct( &$arr, $n)
+	{
+		if($n>0)
+			$count = 1;
+		else
+			$count = 0;
+	 
+		for ( $i = 1; $i < $n; $i++)
+		{
+	 
+			for ($j = 0; $j < $i; $j++)
+				if ($arr[$i] == $arr[$j])
+					break;
+	 
+			if ($i == $j)
+				$count++;
+		}
+		return $count;
 	}
 }

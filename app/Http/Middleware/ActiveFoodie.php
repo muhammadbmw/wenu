@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Auth;
 
-class AdminOrChef
+class ActiveFoodie
 {
     /**
      * Handle an incoming request.
@@ -17,10 +17,12 @@ class AdminOrChef
      */
     public function handle(Request $request, Closure $next)
     {
-         if (Auth::user()->role == 'foodie') {
-            return response(json_encode(['error' => 'Unauthorised']), 405)
+        if (Auth::user()->role == 'foodie' && Auth::user()->foodie_status == 1) {
+			return $next($request);
+		 }
+		 else {
+			    return response(json_encode(['error' => 'Complete your profile']), 405)
                 ->header('Content-Type', 'text/json');
-        }
-		return $next($request);
+		 }
     }
 }
