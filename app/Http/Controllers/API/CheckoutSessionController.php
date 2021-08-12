@@ -163,9 +163,9 @@ class CheckoutSessionController extends Controller
 	{
 		$tax_rate = null;
 		$region = strtoupper($province);
-		$tax5 = 'txr_1J2HzDHvEncyRFYaK9Jn3pSC';
-		$tax13 = 'txr_1IxCIYHvEncyRFYapDGwFvoM';
-		$tax15 = 'txr_1J2I1lHvEncyRFYaTADaTYaR';
+		$tax5 = 'txr_1JCoWXD6DBg5bJPg8hE9rQIZ';
+		$tax13 = 'txr_1JCoUuD6DBg5bJPgkOTxzbJ7';
+		$tax15 = 'txr_1JCoY0D6DBg5bJPgjDO3xbXU';
 		switch ($region) {
                 case "AB":
                     $tax_rate = $tax5;

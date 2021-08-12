@@ -169,6 +169,30 @@ class UserController extends Controller
     return response()->json($response, 200);
 
   }
+  // Guest login
+  public function guest_login(Request $request)
+  {
+	  $email = 'guest@wenueat.com';
+	  $password = 'Guest@Wenu';
+	   if (Auth::attempt(['email' => $email, 'password' => $password])) {
+			$user = Auth::user();
+			$success['token'] = $user->createToken('access_token')->accessToken;
+			$success['user_id'] = $user->id;
+			$success['name'] = $user->name;
+			$success['role'] = $user->role;
+			$response = [
+				'success' => true,
+				'data' => $success,
+				'message' => 'User login successfully.'];
+	   }
+	   else {
+				$response = [
+				'success' => false,
+				'message' => 'User does not exist or wrong credentials!'];
+		}
+		return response()->json($response, 200);
+  }
+  //login
   public function login(Request $request)
   {
       $validator = Validator::make($request->all(), [

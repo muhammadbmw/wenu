@@ -32,7 +32,8 @@ class ChefCancelOrderController extends Controller
 					])
 					->orderBy('orders.id','desc')
 					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),DB::raw("IFNULL(orders.reason,'') as cancel_reason"),'users.name as foodie_name','users.email as foodie_email','payments.transfer_amount',DB::raw("DATE_FORMAT(refunds.created_at,'%Y-%m-%d') as cancel_date"),'staff.name as cancel_by')
-					->get();
+					//->get();
+					->paginate(15)->withQueryString();
 		if($orders){
 			foreach($orders as $order) {
 				$order_id = $order->order_id;

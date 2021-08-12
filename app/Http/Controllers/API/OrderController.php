@@ -48,7 +48,8 @@ class OrderController extends Controller
 					])
 					->orderBy('orders.id','desc')
 					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),'orders.chef_id','users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone','profiles.image as chef_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"),'profiles.show_address','profiles.show_number','payments.total')
-					->get();
+					//->get();
+					->paginate(15)->withQueryString();
 		if($orders){
 			foreach($orders as $order) {
 				$order_id = $order->order_id;
@@ -245,7 +246,8 @@ class OrderController extends Controller
 					])
 					->orderBy('orders.id','desc')
 					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),DB::raw("IFNULL(orders.reason,'') as cancel_reason"),'users.name as chef_name','users.email as chef_email','profiles.mobile as chef_phone','profiles.image as chef_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as chef_address"),'profiles.show_address','profiles.show_number','payments.total','refunds.amount as refund_amount',DB::raw("DATE_FORMAT(refunds.created_at,'%Y-%m-%d') as cancel_date"),'staff.name as cancel_by')
-					->get();
+					//->get();
+					->paginate(15)->withQueryString();
 		if($orders){
 			foreach($orders as $order) {
 				$order_id = $order->order_id;

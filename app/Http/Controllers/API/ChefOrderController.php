@@ -42,7 +42,8 @@ class ChefOrderController extends Controller
 					])
 					->orderBy('orders.id','desc')
 					->select('orders.id as order_id',DB::raw("DATE_FORMAT(orders.created_at,'%Y-%m-%d') as order_date"),'users.name as foodie_name','users.email as foodie_email','profiles.mobile as foodie_phone','profiles.image as foodie_image',DB::raw("CONCAT( IFNULL(CONCAT(profiles.unit,'-'),''),profiles.address,', ',profiles.city,' ',profiles.province,' ',profiles.postal_code) as foodie_address"),'profiles.show_address','profiles.show_number','payments.transfer_amount')
-					->get();
+					//->get();
+					->paginate(15)->withQueryString();
 		if($orders){
 			foreach($orders as $order) {
 				$order_id = $order->order_id;

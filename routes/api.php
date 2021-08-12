@@ -54,6 +54,7 @@ use App\Http\Controllers\API\CheckoutFilterController;
 */
 Route::post('register', [UserController::class,'register']);
 Route::post('login', [UserController::class,'login']);
+Route::get('guest_login', [UserController::class,'guest_login']);
 Route::post('social-login', [UserController::class,'social_login']);
 Route::post('chefRegistration', [UserController::class,'chef_register']);
 Route::post('foodieRegistration', [UserController::class,'foodie_register']);
@@ -123,17 +124,27 @@ Route::middleware(['auth:api','activeChef'])->group(function () {
 	
 });
 
-//foodie api
-Route::middleware(['auth:api','foodie'])->group(function () {
-	Route::get('foodieProfile', [UserController::class,'foodie_profile']);
-	Route::post('updateFoodieProfile', [UserController::class,'update_foodie_profile']);
-	Route::get('switch_to_chef', [SwitchController::class,'foodie_to_chef']);
+//foodie or guest api
+Route::middleware(['auth:api','foodieOrGuest'])->group(function () {
 	Route::post('scheduledDishes',ScheduledDishesController::class);
 	Route::post('checkDeliveryRange',CheckDeliveryRangeController::class);
 	Route::post('cooksNear',CookNearController::class);
 	Route::get('dishDetails',DishDetailsController::class);
 	Route::get('chefKitchen',ChefKitchenController::class);
 	Route::post('chefScheduledDishes',ChefScheduledDishesController::class);
+});
+
+//foodie api
+Route::middleware(['auth:api','foodie'])->group(function () {
+	Route::get('foodieProfile', [UserController::class,'foodie_profile']);
+	Route::post('updateFoodieProfile', [UserController::class,'update_foodie_profile']);
+	Route::get('switch_to_chef', [SwitchController::class,'foodie_to_chef']);
+	//Route::post('scheduledDishes',ScheduledDishesController::class);
+	//Route::post('checkDeliveryRange',CheckDeliveryRangeController::class);
+	//Route::post('cooksNear',CookNearController::class);
+	//Route::get('dishDetails',DishDetailsController::class);
+	//Route::get('chefKitchen',ChefKitchenController::class);
+	//Route::post('chefScheduledDishes',ChefScheduledDishesController::class);
 	Route::get('addToCart',AddToCartController::class);
 	Route::apiResource('cart', CartController::class)
 					->only(['index']);

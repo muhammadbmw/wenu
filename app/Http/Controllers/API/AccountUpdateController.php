@@ -21,7 +21,7 @@ class AccountUpdateController extends Controller
     public function __invoke(Request $request)
     {
         Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
-		$endpoint_secret = 'whsec_XBDXMGg27YjEcYhgyAWeT6scdfA6pJ9f';
+		$endpoint_secret = 'whsec_12S6D1Q40j0oKJ2dCWtxMjG62LOT7HHO';
 		$payload = @file_get_contents('php://input');
 		$sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'];
 		$event = null;

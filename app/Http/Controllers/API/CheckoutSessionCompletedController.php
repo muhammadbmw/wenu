@@ -25,7 +25,7 @@ class CheckoutSessionCompletedController extends Controller
     public function __invoke(Request $request)
     {
         Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
-		$endpoint_secret = 'whsec_7bZEUrFBgspkuuiXt0xpnz8j4CTxUkBi';
+		$endpoint_secret = 'whsec_voWP4WAyHY2RI5tpRoB2WwMgNSATkkCo';
 		$payload = @file_get_contents('php://input');
 		$sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'];
 		$event = null;
